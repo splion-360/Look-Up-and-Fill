@@ -28,14 +28,25 @@ interface PortfolioTableProps {
 
 export default function PortfolioTable({ data, viewMode, onLookupRow }: PortfolioTableProps) {
   const [expandedRows, setExpandedRows] = React.useState<Set<number>>(new Set());
+  
+  // Cache filtered data to prevent jitter when switching views
+  const [cachedData, setCachedData] = React.useState<{
+    all: PortfolioRow[];
+    missing: PortfolioRow[];
+  }>({ all: [], missing: [] });
 
-  // Filter data based on view mode
+  // Update cache when data changes
+  React.useEffect(() => {
+    setCachedData({
+      all: data,
+      missing: data.filter(row => !row.symbol)
+    });
+  }, [data]);
+
+  // Use cached data for filtering to prevent jitter
   const filteredData = React.useMemo(() => {
-    if (viewMode === 'missing') {
-      return data.filter(row => !row.symbol);
-    }
-    return data;
-  }, [data, viewMode]);
+    return viewMode === 'missing' ? cachedData.missing : cachedData.all;
+  }, [viewMode, cachedData]);
 
   const toggleRowExpansion = (rowId: number) => {
     const newExpanded = new Set(expandedRows);

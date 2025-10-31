@@ -11,24 +11,27 @@ import Alert from '@mui/material/Alert';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import { useToast } from '../dashboard/components/ToastProvider';
-import { usePageTransition } from '../hooks/usePageTransition';
+import { useRouter } from 'next/navigation';
+import { usePortfolioSession } from '../hooks/usePortfolioSession';
 
 interface PortfolioUploadProps {
-  onUploadSuccess?: (data: any) => void;
+  onUploadSuccess?: (data: { success: boolean; fileName: string; totalRows: number; missingSymbols: number }) => void;
 }
 
 export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProps) {
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [uploading, setUploading] = React.useState(false);
+  const [uploadSuccess, setUploadSuccess] = React.useState(false);
   const [error, setError] = React.useState('');
   const [dragOver, setDragOver] = React.useState(false);
   const { showToast } = useToast();
-  const { navigate } = usePageTransition();
+  const router = useRouter();
+  const { createSession } = usePortfolioSession();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const validateFile = (file: File) => {
     const isCSV = file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv');
-    
+
     if (!isCSV) {
       setError('Please select a CSV file only');
       return false;
@@ -49,6 +52,7 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
 
     if (validateFile(file)) {
       setSelectedFile(file);
+      setUploadSuccess(false); // Reset success state when new file selected
     } else {
       setSelectedFile(null);
     }
@@ -73,6 +77,7 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
 
     if (file && validateFile(file)) {
       setSelectedFile(file);
+      setUploadSuccess(false); // Reset success state when new file dropped
     } else {
       setSelectedFile(null);
     }
@@ -91,7 +96,7 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
     try {
       // Mock upload for now - replace with actual API call later
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // Mock successful response
       const mockResponse = {
         success: true,
@@ -100,17 +105,20 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
         missingSymbols: 5
       };
 
-      showToast('Portfolio uploaded successfully!', 'success');
+      // Create session for this upload
+      createSession({
+        fileName: selectedFile.name,
+        totalRows: mockResponse.totalRows,
+        missingSymbols: mockResponse.missingSymbols
+      });
 
-      // Reset form
-      setSelectedFile(null);
-      setError('');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      // Show success state
+      setUploadSuccess(true);
 
-      // Navigate to table view
-      navigate('/portfolio/table');
+      // Wait a moment to show success message, then navigate immediately
+      setTimeout(() => {
+        router.push('/portfolio/table');
+      }, 500);
 
       if (onUploadSuccess) {
         onUploadSuccess(mockResponse);
@@ -118,11 +126,12 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
       setError(errorMessage);
+      setUploadSuccess(false);
       showToast(`Upload failed: ${errorMessage}`, 'error');
     } finally {
       const elapsedTime = Date.now() - startTime;
       const minDuration = 2000;
-      
+
       if (elapsedTime < minDuration) {
         setTimeout(() => setUploading(false), minDuration - elapsedTime);
       } else {
@@ -140,16 +149,8 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
   };
 
   return (
-    <Paper sx={{ p: 4, borderRadius: 3, elevation: 4, bgcolor: 'background.paper' }}>
-      <Stack spacing={4}>
-        <Box textAlign="center">
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'text.primary', mb: 2 }}>
-            Upload Portfolio CSV
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem', maxWidth: 600, mx: 'auto' }}>
-            Upload your portfolio CSV file to enrich missing ticker symbols using AI-powered financial APIs
-          </Typography>
-        </Box>
+    <Paper sx={{ p: 3 }}>
+      <Stack spacing={3}>
 
         <Box>
           <input
@@ -170,32 +171,28 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
               onDrop={handleDrop}
               startIcon={<CloudUploadIcon />}
               sx={{
-                height: 140,
+                height: 200,
                 width: '100%',
                 borderStyle: 'dashed',
                 borderWidth: 2,
-                borderRadius: 3,
-                borderColor: dragOver ? 'primary.main' : 'grey.400',
-                color: dragOver ? 'primary.main' : 'text.primary',
-                bgcolor: dragOver ? 'primary.50' : 'grey.50',
+                borderColor: dragOver ? 'primary.main' : 'divider',
+                color: dragOver ? 'primary.main' : 'text.secondary',
+                bgcolor: dragOver ? 'primary.50' : 'background.default',
                 flexDirection: 'column',
-                gap: 1,
-                transition: 'all 0.3s ease',
+                gap: 2,
                 '&:hover': {
                   borderColor: 'primary.main',
                   bgcolor: 'primary.50',
                   color: 'primary.main',
-                  transform: 'translateY(-2px)',
-                  boxShadow: 2,
                 }
               }}
               disabled={uploading}
             >
-              <Typography variant="h6" sx={{ fontWeight: 500, mb: 1 }}>
+              <Typography variant="body1" sx={{ fontWeight: 500 }}>
                 {dragOver ? 'Drop CSV file here' : 'Click to select CSV file or drag & drop'}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.95rem' }}>
-                Maximum file size: 10MB • CSV format only
+              <Typography variant="body2" color="text.secondary">
+                Maximum file size: 10MB • CSV only
               </Typography>
             </Button>
           ) : (
@@ -206,26 +203,20 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
                 display: 'flex',
                 alignItems: 'center',
                 gap: 2,
-                bgcolor: 'background.default',
-                borderRadius: 2,
-                border: '1px solid',
-                borderColor: 'divider'
               }}
             >
-              <TableChartIcon color="primary" sx={{ fontSize: 32 }} />
+              <TableChartIcon color="primary" />
               <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 500, fontSize: '1.1rem' }}>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
                   {selectedFile.name}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.9rem' }}>
+                <Typography variant="body2" color="text.secondary">
                   {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
                 </Typography>
               </Box>
               <Button
-                size="medium"
                 onClick={handleRemoveFile}
                 disabled={uploading}
-                sx={{ fontSize: '0.9rem' }}
               >
                 Remove
               </Button>
@@ -239,42 +230,40 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
           </Alert>
         )}
 
-        {uploading && (
-          <Box>
-            <Typography variant="h6" gutterBottom sx={{ fontSize: '1.1rem' }}>
+        {uploading && !uploadSuccess && (
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h5" gutterBottom>
               Processing portfolio file...
             </Typography>
-            <InfinityLoader />
           </Box>
         )}
 
-        <Button
-          variant="contained"
-          onClick={handleUpload}
-          disabled={!selectedFile || uploading}
-          startIcon={<CloudUploadIcon />}
-          size="large"
-          sx={{
-            alignSelf: 'center',
-            textTransform: 'none',
-            fontWeight: 600,
-            borderRadius: 3,
-            px: 6,
-            py: 2,
-            fontSize: '1.1rem',
-            boxShadow: 3,
-            '&:hover': {
-              boxShadow: 6,
-              transform: 'translateY(-2px)',
-            },
-            '&:disabled': {
-              opacity: 0.6,
-            },
-            transition: 'all 0.3s ease',
-          }}
-        >
-          {uploading ? 'Processing...' : 'Upload & Process'}
-        </Button>
+        {uploadSuccess && (
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h5" gutterBottom sx={{ color: 'success.main', fontWeight: 500 }}>
+              Upload successful, redirecting...
+            </Typography>
+          </Box>
+        )}
+
+        {!uploadSuccess && (
+          <Button
+            variant="contained"
+            onClick={handleUpload}
+            disabled={!selectedFile || uploading}
+            startIcon={<CloudUploadIcon />}
+            size="large"
+            sx={{ 
+              alignSelf: 'center',
+              '&.Mui-disabled': {
+                backgroundColor: 'grey.400',
+                color: 'grey.600',
+              }
+            }}
+          >
+            {uploading ? 'Processing...' : 'Upload & Process'}
+          </Button>
+        )}
       </Stack>
     </Paper>
   );
