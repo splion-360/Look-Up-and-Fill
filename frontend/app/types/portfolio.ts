@@ -1,13 +1,13 @@
 export interface PortfolioRow {
   id: number;
-  name: string;
-  symbol: string | null;  // null = missing ticker
-  price: number;
-  shares: number;
-  marketValue: number;
-  isEnriched?: boolean;   // for highlighting newly added data
+  name: string | null;
+  symbol: string | null;
+  price: number | null;
+  shares: number | null;
+  market: number | null;
+  isEnriched?: boolean;
   lookupStatus?: 'pending' | 'success' | 'failed' | 'not_started';
-  failureReason?: string; // reason for failed lookup
+  failureReason?: string;
 }
 
 export interface PortfolioData {

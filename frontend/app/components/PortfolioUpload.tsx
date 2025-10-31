@@ -6,7 +6,6 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
-import InfinityLoader from '../dashboard/components/InfinityLoader';
 import Alert from '@mui/material/Alert';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import TableChartIcon from '@mui/icons-material/TableChart';
@@ -30,15 +29,15 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const validateFile = (file: File) => {
-    const isCSV = file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv');
+    const isCorrect = file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv') || file.name.toLowerCase().endsWith('.xslx');
 
-    if (!isCSV) {
-      setError('Please select a CSV file only');
+    if (!isCorrect) {
+      setError('Please upload a CSV / XSLX file only');
       return false;
     }
 
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      setError('File size must be less than 10MB');
+    if (file.size > 100 * 1024 * 1024) {
+      setError('File size must be less than 100MB');
       return false;
     }
 
@@ -52,7 +51,7 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
 
     if (validateFile(file)) {
       setSelectedFile(file);
-      setUploadSuccess(false); // Reset success state when new file selected
+      setUploadSuccess(false);
     } else {
       setSelectedFile(null);
     }
@@ -77,7 +76,7 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
 
     if (file && validateFile(file)) {
       setSelectedFile(file);
-      setUploadSuccess(false); // Reset success state when new file dropped
+      setUploadSuccess(false);
     } else {
       setSelectedFile(null);
     }
@@ -94,34 +93,42 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
     setError('');
 
     try {
-      // Mock upload for now - replace with actual API call later
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const formData = new FormData();
+      formData.append('file', selectedFile);
 
-      // Mock successful response
-      const mockResponse = {
-        success: true,
-        fileName: selectedFile.name,
-        totalRows: 8,
-        missingSymbols: 5
-      };
-
-      // Create session for this upload
-      createSession({
-        fileName: selectedFile.name,
-        totalRows: mockResponse.totalRows,
-        missingSymbols: mockResponse.missingSymbols
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/documents/upload`, {
+        method: 'POST',
+        body: formData,
       });
 
-      // Show success state
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Upload failed');
+      }
+
+      const result = await response.json();
+
+      const missingSymbols = Object.values(result.missing_data).reduce((sum: number, count: any) => sum + count, 0);
+      createSession({
+        fileName: selectedFile.name,
+        totalRows: result.total_rows,
+        missingSymbols: missingSymbols,
+        csvData: result.data
+      });
+
       setUploadSuccess(true);
 
-      // Wait a moment to show success message, then navigate immediately
       setTimeout(() => {
         router.push('/portfolio/table');
       }, 500);
 
       if (onUploadSuccess) {
-        onUploadSuccess(mockResponse);
+        onUploadSuccess({
+          success: true,
+          fileName: selectedFile.name,
+          totalRows: result.total_rows,
+          missingSymbols: missingSymbols
+        });
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
@@ -192,7 +199,7 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
                 {dragOver ? 'Drop CSV file here' : 'Click to select CSV file or drag & drop'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Maximum file size: 10MB • CSV only
+                Maximum file size: 100MB • CSV/XLSX only
               </Typography>
             </Button>
           ) : (
@@ -253,7 +260,7 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
             disabled={!selectedFile || uploading}
             startIcon={<CloudUploadIcon />}
             size="large"
-            sx={{ 
+            sx={{
               alignSelf: 'center',
               '&.Mui-disabled': {
                 backgroundColor: 'grey.400',

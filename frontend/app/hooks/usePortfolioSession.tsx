@@ -7,6 +7,7 @@ export interface PortfolioSessionData {
   uploadedAt: number;
   totalRows: number;
   missingSymbols: number;
+  csvData?: any[];
 }
 
 const SESSION_KEY = 'portfolio_session';
@@ -17,12 +18,9 @@ export function usePortfolioSession() {
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
-    // Clear session flag on page load
-    // This ensures fresh sessions on page refresh/new tab
     const isSessionValid = sessionStorage.getItem(SESSION_VALID_KEY);
-    
+
     if (!isSessionValid) {
-      // No valid session flag, clear any existing session data
       sessionStorage.removeItem(SESSION_KEY);
       setIsLoading(false);
       return;
@@ -48,7 +46,7 @@ export function usePortfolioSession() {
       ...data,
       uploadedAt: Date.now()
     };
-    
+
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
     sessionStorage.setItem(SESSION_VALID_KEY, 'true');
     setSessionData(sessionData);

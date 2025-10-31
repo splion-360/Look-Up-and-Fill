@@ -18,8 +18,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PortfolioTable from '../../components/PortfolioTable';
 import ToastProvider from '../../dashboard/components/ToastProvider';
 import AppTheme from '../../shared-theme/AppTheme';
-import { placeholderPortfolioData } from '../../data/placeholderData';
-import { LookupProgress } from '../../types/portfolio';
+import { PortfolioRow, LookupProgress } from '../../types/portfolio';
 import { usePortfolioSession } from '../../hooks/usePortfolioSession';
 import { usePageTransition } from '../../hooks/usePageTransition';
 import PageTransitionLoader from '../../components/PageTransitionLoader';
@@ -28,7 +27,8 @@ export default function PortfolioTablePage() {
   const { sessionData, isLoading, hasValidSession } = usePortfolioSession();
   const { navigate } = usePageTransition();
   const [isNavigating, setIsNavigating] = React.useState(false);
-  const [portfolioData, setPortfolioData] = React.useState(placeholderPortfolioData.rows);
+  const [portfolioData, setPortfolioData] = React.useState<PortfolioRow[]>([]);
+  const [dataLoaded, setDataLoaded] = React.useState(false);
   const [viewMode, setViewMode] = React.useState<'all' | 'missing'>('all');
   const [lookupProgress, setLookupProgress] = React.useState<LookupProgress>({
     current: 0,
@@ -44,6 +44,29 @@ export default function PortfolioTablePage() {
     navigate(path);
   };
 
+  React.useEffect(() => {
+    if (sessionData && sessionData.csvData && !dataLoaded) {
+      const portfolioRows = sessionData.csvData.map((row: any, index: number) => {
+        const price = parseFloat(row.price) || null;
+        const shares = parseInt(row.shares) || null;
+        const market = parseFloat(row.market) || null;
+
+        return {
+          id: index + 1,
+          name: row.name || row.Name || null,
+          symbol: row.symbol || row.Symbol || null,
+          price,
+          shares,
+          market,
+          lookupStatus: 'not_started' as const
+        };
+      });
+
+      setPortfolioData(portfolioRows);
+      setDataLoaded(true);
+    }
+  }, [sessionData, dataLoaded]);
+
   // Redirect to upload page if no valid session
   React.useEffect(() => {
     if (!isLoading && !hasValidSession()) {
@@ -51,12 +74,11 @@ export default function PortfolioTablePage() {
     }
   }, [isLoading, hasValidSession, navigate]);
 
-  // Only show loader for session loading or when manually navigating away (Back to Home)
+
   if (isLoading) {
     return <PageTransitionLoader />;
   }
 
-  // Show loader only when manually navigating away (Back to Home button)
   if (isNavigating) {
     return <PageTransitionLoader />;
   }
@@ -65,7 +87,7 @@ export default function PortfolioTablePage() {
     return <PageTransitionLoader />;
   }
 
-  const missingSymbolsCount = portfolioData.filter(row => !row.symbol).length;
+  const missingSymbolsCount = portfolioData.filter((row: PortfolioRow) => !row.symbol || !row.name).length;
 
   const handleViewModeChange = (event: React.MouseEvent<HTMLElement>, newViewMode: 'all' | 'missing') => {
     if (newViewMode !== null) {
@@ -77,60 +99,37 @@ export default function PortfolioTablePage() {
     const row = portfolioData.find(r => r.id === rowId);
     if (!row) return;
 
-    // Update row status to pending
     setPortfolioData(prev => prev.map(r =>
       r.id === rowId ? { ...r, lookupStatus: 'pending' as const } : r
     ));
 
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/documents/lookup/single`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: [row] }),
+      });
 
-    // Mock success/failure (80% success rate)
-    const isSuccess = Math.random() > 0.2;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Lookup failed');
+      }
 
-    if (isSuccess) {
-      // Mock ticker symbols
-      const mockSymbols: { [key: string]: string } = {
-        'Microsoft Corporation': 'MSFT',
-        'Berkshire Hathaway Inc. Class B': 'BRK.B',
-        'Alphabet Inc. Class A': 'GOOGL',
-        'Tesla Inc': 'TSLA',
-        'Unknown Tech Co': 'UNK'
-      };
-
-      const symbol = mockSymbols[row.name] || 'UNK';
-
+      const result = await response.json();
+      const enrichedRow = result.data[0]; // Get the first (and only) enriched row
       setPortfolioData(prev => prev.map(r =>
-        r.id === rowId ? {
-          ...r,
-          symbol,
-          isEnriched: true,
-          lookupStatus: 'success' as const
-        } : r
+        r.id === rowId ? { ...r, ...enrichedRow } : r
       ));
-    } else {
-      // Mock failure reasons
-      const failureReasons = [
-        'Company not found in financial databases',
-        'Multiple ticker matches found, manual review required',
-        'Delisted or inactive company',
-        'Insufficient company information provided',
-        'API rate limit exceeded, try again later'
-      ];
-      const randomReason = failureReasons[Math.floor(Math.random() * failureReasons.length)];
-
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Lookup service unavailable';
       setPortfolioData(prev => prev.map(r =>
-        r.id === rowId ? {
-          ...r,
-          lookupStatus: 'failed' as const,
-          failureReason: randomReason
-        } : r
+        r.id === rowId ? { ...r, lookupStatus: 'failed' as const, failureReason: errorMessage } : r
       ));
     }
   };
 
   const handleLookupMissing = async () => {
-    const missingRows = portfolioData.filter(row => !row.symbol);
+    const missingRows = portfolioData.filter((row: PortfolioRow) => !row.symbol || !row.name);
 
     if (missingRows.length === 0) {
       return;
@@ -144,40 +143,45 @@ export default function PortfolioTablePage() {
       failedRows: []
     });
 
-    // Mock lookup process for all missing rows
-    for (let i = 0; i < missingRows.length; i++) {
-      const row = missingRows[i];
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/documents/lookup/missing`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: portfolioData }),
+      });
 
-      // Update progress
-      setLookupProgress(prev => ({
-        ...prev,
-        current: i + 1
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Lookup failed');
+      }
+
+      const result = await response.json();
+      setPortfolioData(result.data);
+      setLookupProgress(prev => ({ ...prev, current: missingRows.length }));
+    } catch (error) {
+      console.error('Lookup failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Lookup service unavailable';
+      
+      // Mark all missing rows as failed with the error message
+      setPortfolioData(prev => prev.map(r => {
+        const isMissing = !r.symbol || !r.name;
+        return isMissing ? { ...r, lookupStatus: 'failed' as const, failureReason: errorMessage } : r;
       }));
-
-      await handleLookupRow(row.id);
     }
 
-    // Complete the process
-    setLookupProgress(prev => ({
-      ...prev,
-      isProcessing: false
-    }));
+    setLookupProgress(prev => ({ ...prev, isProcessing: false }));
   };
 
   const handleDownload = () => {
-    // Mock download - in real app this would call backend API
     const csvContent = [
       'Name,Symbol,Price,# of Shares,Market Value',
-      ...portfolioData.map(row =>
-        `"${row.name}","${row.symbol || ''}",${row.price},${row.shares},${row.marketValue}`
-      )
+      ...portfolioData.map((row: PortfolioRow) => `"${row.name}","${row.symbol || ''}",${row.price},${row.shares},${row.market}`)
     ].join('\n');
-
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'enriched_portfolio.csv';
+    a.download = `enriched_portfolio.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -232,7 +236,7 @@ export default function PortfolioTablePage() {
                     Portfolio Data Analysis
                   </Typography>
                   <Typography variant="h6" sx={{ color: 'text.secondary', fontSize: '1.2rem' }}>
-                    {sessionData?.fileName} • {portfolioData.length} rows total
+                    {sessionData?.fileName} • {sessionData?.totalRows || portfolioData.length} rows total
                   </Typography>
                 </Box>
               </Box>
