@@ -41,7 +41,7 @@ const items = [
     icon: <DownloadIcon sx={{ color: 'text.secondary' }} />,
     title: 'Export as CSV',
     description:
-      'Download your enriched portfolio data with all missing ticker symbols populated',
+      'Download your data with all missing ticker symbols populated',
   },
 ];
 
@@ -53,7 +53,7 @@ function Content() {
       <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 3 }}>
         <img
           src="/mascot.svg"
-          alt="Portfolio Enrichment"
+          alt="Look up and Fill"
           width={80}
           height={80}
           style={{
@@ -61,7 +61,7 @@ function Content() {
           }}
         />
         <Typography variant="h2" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-          Look Up & Fill
+          Look up & Fill
         </Typography>
       </Box>
 

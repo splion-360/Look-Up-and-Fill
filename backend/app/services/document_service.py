@@ -84,7 +84,9 @@ async def lookup_missing_data(portfolio_data: list[dict]) -> dict[str, Any]:
 
         logger.info(f"Lookup completed: {enriched_data}")
         return {"data": enriched_data, "enriched_count": len(missing_rows)}
-        
+
     except Exception as e:
         logger.error(f"Error during lookup process: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Lookup failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Lookup failed: {str(e)}"
+        ) from e
