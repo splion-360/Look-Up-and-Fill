@@ -161,7 +161,7 @@ export default function PortfolioTablePage() {
     } catch (error) {
       console.error('Lookup failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Lookup service unavailable';
-      
+
       // Mark all missing rows as failed with the error message
       setPortfolioData(prev => prev.map(r => {
         const isMissing = !r.symbol || !r.name;
@@ -233,7 +233,7 @@ export default function PortfolioTablePage() {
                     gutterBottom
                     sx={{ fontWeight: 'bold', color: 'primary.main', mb: 2 }}
                   >
-                    Portfolio Data Analysis
+                    Document View
                   </Typography>
                   <Typography variant="h6" sx={{ color: 'text.secondary', fontSize: '1.2rem' }}>
                     {sessionData?.fileName} • {sessionData?.totalRows || portfolioData.length} rows total

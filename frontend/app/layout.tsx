@@ -13,7 +13,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Portfolio Ticker Enrichment",
+  title: "Look up and Fill",
   description: "AI-powered portfolio CSV ticker symbol enrichment tool",
   icons: {
     icon: "/mascot.png",
@@ -41,7 +41,7 @@ export default function RootLayout({
         <AppRouterCacheProvider>
           <PageRefreshLoader>
             {children}
-            <Toaster 
+            <Toaster
               position="top-right"
               toastOptions={{
                 duration: 4000,
