@@ -5,8 +5,7 @@ import { DataGrid, GridColDef, GridRenderCellParams, GridRowParams } from '@mui/
 import { PortfolioRow } from '../types/portfolio';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
-import Collapse from '@mui/material/Collapse';
-import IconButton from '@mui/material/IconButton';
+
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
 import Tooltip from '@mui/material/Tooltip';
@@ -16,8 +15,7 @@ import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
 import SearchIcon from '@mui/icons-material/Search';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+
 import Button from '@mui/material/Button';
 
 interface PortfolioTableProps {
@@ -28,14 +26,31 @@ interface PortfolioTableProps {
 
 export default function PortfolioTable({ data, viewMode, onLookupRow }: PortfolioTableProps) {
   const [expandedRows, setExpandedRows] = React.useState<Set<number>>(new Set());
+  const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 10 });
 
-  // Filter data based on view mode
+  // Cache filtered data to prevent jitter when switching views
+  const [cachedData, setCachedData] = React.useState<{
+    all: PortfolioRow[];
+    missing: PortfolioRow[];
+  }>({ all: [], missing: [] });
+
+  // Update cache when data changes
+  React.useEffect(() => {
+    setCachedData({
+      all: data,
+      missing: data.filter(row => !row.symbol || !row.name)
+    });
+  }, [data]);
+
+  // Use cached data for filtering to prevent jitter
   const filteredData = React.useMemo(() => {
-    if (viewMode === 'missing') {
-      return data.filter(row => !row.symbol);
-    }
-    return data;
-  }, [data, viewMode]);
+    return viewMode === 'missing' ? cachedData.missing : cachedData.all;
+  }, [viewMode, cachedData]);
+
+  // Reset pagination to first page when view mode changes
+  React.useEffect(() => {
+    setPaginationModel(prev => ({ ...prev, page: 0 }));
+  }, [viewMode]);
 
   const toggleRowExpansion = (rowId: number) => {
     const newExpanded = new Set(expandedRows);
@@ -54,18 +69,18 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
     const rowId = params.row.id;
     const isExpanded = expandedRows.has(rowId);
     const hasMissingSymbol = !params.row.symbol;
+    const hasMissingName = !params.row.name;
 
-    // Complete - has symbol and not enriched (BLUE)
-    if (params.row.symbol && !isEnriched) {
+    if (params.row.symbol && params.row.name && !isEnriched) {
       return (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-          <Chip 
-            icon={<CheckCircleIcon sx={{ color: 'black' }} />} 
-            label="Complete" 
-            color="primary" 
+          <Chip
+            icon={<CheckCircleIcon sx={{ color: 'black' }} />}
+            label="Complete"
+            color="primary"
             size="small"
-            sx={{ 
-              fontSize: '0.75rem', 
+            sx={{
+              fontSize: '0.75rem',
               height: 28,
               color: 'black',
               '& .MuiChip-label': {
@@ -77,14 +92,14 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
       );
     }
 
-    // Found - was enriched/looked up successfully (GREEN)
+
     if (status === 'success' || isEnriched) {
       return (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-          <Chip 
-            icon={<CheckCircleIcon />} 
-            label="Found" 
-            color="success" 
+          <Chip
+            icon={<CheckCircleIcon />}
+            label="Found"
+            color="success"
             size="small"
             sx={{ fontSize: '0.75rem', height: 28 }}
           />
@@ -97,14 +112,14 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
       return (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, width: '100%' }}>
           <Tooltip title="Click for more details" arrow>
-            <Chip 
-              icon={<ErrorIcon />} 
-              label="Not Found" 
-              color="error" 
+            <Chip
+              icon={<ErrorIcon />}
+              label="Not Found"
+              color="error"
               size="small"
               onClick={failureReason ? () => toggleRowExpansion(rowId) : undefined}
-              sx={{ 
-                fontSize: '0.75rem', 
+              sx={{
+                fontSize: '0.75rem',
                 height: 28,
                 cursor: failureReason ? 'pointer' : 'default',
                 '&:hover': failureReason ? {
@@ -121,10 +136,10 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
     if (status === 'pending') {
       return (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-          <Chip 
-            icon={<HourglassEmptyIcon />} 
-            label="Looking up..." 
-            color="info" 
+          <Chip
+            icon={<HourglassEmptyIcon />}
+            label="Looking up..."
+            color="info"
             size="small"
             sx={{ fontSize: '0.75rem', height: 28 }}
           />
@@ -132,20 +147,20 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
       );
     }
 
-    // Missing - no symbol, can be looked up (GREY)
-    if (hasMissingSymbol) {
+    // Missing - no symbol or name, can be looked up (GREY)
+    if (hasMissingSymbol || hasMissingName) {
       return (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
           <Tooltip title="Click to lookup symbol" arrow>
-            <Chip 
-              icon={<SearchIcon />} 
-              label="Missing" 
-              color="default" 
+            <Chip
+              icon={<SearchIcon />}
+              label="Missing"
+              color="default"
               size="small"
               variant="outlined"
               onClick={() => onLookupRow?.(rowId)}
-              sx={{ 
-                fontSize: '0.75rem', 
+              sx={{
+                fontSize: '0.75rem',
                 height: 28,
                 cursor: 'pointer',
                 '&:hover': {
@@ -162,10 +177,10 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
     // Default case (should not occur with new logic)
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-        <Chip 
-          icon={<RemoveCircleIcon />} 
-          label="Unknown" 
-          color="default" 
+        <Chip
+          icon={<RemoveCircleIcon />}
+          label="Unknown"
+          color="default"
           size="small"
           variant="outlined"
           sx={{ fontSize: '0.75rem', height: 28 }}
@@ -187,8 +202,8 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
     }
 
     return (
-      <Typography 
-        sx={{ 
+      <Typography
+        sx={{
           fontWeight: isEnriched ? 600 : 500,
           color: isEnriched ? 'primary.main' : 'text.primary',
           bgcolor: isEnriched ? 'primary.50' : 'transparent',
@@ -211,7 +226,7 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
         <Typography sx={{ fontSize: '0.875rem', fontWeight: 500, flex: 1 }}>
-          {params.value}
+          {params.value || '-'}
         </Typography>
         {showRetry && (
           <Tooltip title="Retry lookup" arrow>
@@ -243,12 +258,14 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
       flex: 2,
       minWidth: 200,
       renderCell: renderNameCell,
+      sortable: false,
     },
     {
       field: 'symbol',
       headerName: 'Symbol',
       width: 120,
       renderCell: renderSymbolCell,
+      sortable: false,
     },
     {
       field: 'price',
@@ -256,10 +273,15 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
       width: 100,
       type: 'number',
       renderCell: (params) => (
-        <Typography sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
-          ${params.value.toFixed(2)}
+        <Typography sx={{
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          color: params.value === null ? 'text.disabled' : 'inherit'
+        }}>
+          {params.value !== null ? `$${params.value.toFixed(2)}` : 'N/A'}
         </Typography>
       ),
+      sortable: false,
     },
     {
       field: 'shares',
@@ -267,21 +289,31 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
       width: 100,
       type: 'number',
       renderCell: (params) => (
-        <Typography sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
-          {params.value.toLocaleString()}
+        <Typography sx={{
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          color: params.value === null ? 'text.disabled' : 'inherit'
+        }}>
+          {params.value !== null ? params.value.toLocaleString() : 'N/A'}
         </Typography>
       ),
+      sortable: false,
     },
     {
-      field: 'marketValue',
+      field: 'market',
       headerName: 'Market Value',
       width: 140,
       type: 'number',
       renderCell: (params) => (
-        <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'success.main' }}>
-          ${params.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        <Typography sx={{
+          fontSize: '0.875rem',
+          fontWeight: 600,
+          color: params.value === null ? 'text.disabled' : 'success.main'
+        }}>
+          {params.value !== null ? `$${params.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'}
         </Typography>
       ),
+      sortable: false,
     },
     {
       field: 'status',
@@ -325,15 +357,13 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
           const baseClass = params.indexRelativeToCurrentPage % 2 === 0 ? 'even' : 'odd';
           return isEnriched ? `${baseClass} enriched-row` : baseClass;
         }}
-        initialState={{
-          pagination: { paginationModel: { pageSize: 10 } },
-        }}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
         pageSizeOptions={[10]}
         rowHeight={48}
         getDetailPanelContent={getDetailPanelContent}
         isRowSelectable={() => false}
-        getDetailPanelHeight={() => 'auto'}
-        detailPanelExpandedRowIds={Array.from(expandedRows)}
+        disableColumnResize={true}
         sx={{
           '& .MuiDataGrid-root': {
             border: '1px solid',

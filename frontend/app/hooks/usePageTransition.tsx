@@ -16,7 +16,7 @@ export function usePageTransition() {
     await new Promise(resolve => setTimeout(resolve, 100));
     
     const elapsed = Date.now() - startTime;
-    const remainingTime = Math.max(0, 1500 - elapsed);
+    const remainingTime = Math.max(0, 500 - elapsed);
     
     setTimeout(() => {
       router.push(destination);
