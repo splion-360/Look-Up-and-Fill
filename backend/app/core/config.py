@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    name: str = "QA Chatbot API"
+    name: str = "Look up and Fill API"
     version: str = "1.0.0"
     debug: bool = False
     prefix: str = "/api/v1"

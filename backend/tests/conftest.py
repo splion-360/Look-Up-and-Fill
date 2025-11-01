@@ -1,33 +1,31 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import create_app
+from app.main import app
 
 
 @pytest.fixture
-def app():
-    """Create FastAPI test application."""
-    return create_app()
-
-
-@pytest.fixture
-def client(app):
-    """Create test client."""
+def client():
     return TestClient(app)
 
 
 @pytest.fixture
-def sample_chat_request():
-    """Sample chat request for testing."""
-    return {"message": "Hello, how are you?"}
+def sample_csv_data():
+    return """name,symbol,shares,price,market
+Apple Inc.,AAPL,100,150.00,NASDAQ
+,GOOGL,50,2500.00,NASDAQ
+Microsoft Corp.,,75,300.00,NASDAQ"""
 
 
 @pytest.fixture
-def sample_chat_message():
-    """Sample chat message for testing."""
-    return {
-        "id": "test-123",
-        "content": "Hello, how are you?",
-        "role": "user",
-        "timestamp": "2024-01-01T00:00:00Z"
-    }
+def sample_lookup_data():
+    return [
+        {"name": "Apple Inc.", "symbol": "", "shares": 100, "price": 150.00},
+        {"name": "", "symbol": "GOOGL", "shares": 50, "price": 2500.00},
+        {
+            "name": "Microsoft Corp.",
+            "symbol": "",
+            "shares": 75,
+            "price": 300.00,
+        },
+    ]

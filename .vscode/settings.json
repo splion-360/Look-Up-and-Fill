@@ -6,5 +6,10 @@
             "source.organizeImports": "explicit"
         },
         "editor.defaultFormatter": "ms-python.black-formatter"
-    }
+    },
+    "python.testing.pytestArgs": [
+        "backend"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }

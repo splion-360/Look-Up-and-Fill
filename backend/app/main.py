@@ -2,7 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.middleware.rate_limit import RateLimitMiddleware
 from app.routers import documents
+from app.utils import REQUEST_PER_MINUTE
 
 
 app = FastAPI(
@@ -19,6 +21,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+rate_limiter = RateLimitMiddleware(REQUEST_PER_MINUTE)
+app.middleware("http")(rate_limiter)
+
 app.include_router(
     documents.router,
     prefix=f"{settings.prefix}/documents",
@@ -29,6 +34,6 @@ app.include_router(
 @app.get("/")
 async def root():
     return {
-        "message": f"Welcome to {settings.name}",
+        "message": f"{settings.name} is up and running ;)",
         "version": settings.version,
     }

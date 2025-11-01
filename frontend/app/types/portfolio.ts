@@ -17,10 +17,3 @@ export interface PortfolioData {
   fileName?: string;
 }
 
-export interface LookupProgress {
-  current: number;
-  total: number;
-  isProcessing: boolean;
-  completedRows: number[];
-  failedRows: number[];
-}
