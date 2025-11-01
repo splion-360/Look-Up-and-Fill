@@ -75,7 +75,7 @@ NOTE: For the sake of this demo, the default `BACKEND_PORT` is assumed to be `80
 #### POST /api/v1/documents/upload
 Upload and process CSV files with portfolio data.
 
-#### POST /api/v1/documents/lookup/missing
+#### POST /api/v1/documents/lookup/full
 Perform _batched_ lookup for all missing portfolio data.
 
 #### POST /api/v1/documents/lookup/single

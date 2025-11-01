@@ -25,7 +25,6 @@ interface PortfolioTableProps {
 }
 
 export default function PortfolioTable({ data, viewMode, onLookupRow }: PortfolioTableProps) {
-  const [expandedRows, setExpandedRows] = React.useState<Set<number>>(new Set());
   const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 10 });
 
   // Cache filtered data to prevent jitter when switching views
@@ -52,22 +51,12 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
     setPaginationModel(prev => ({ ...prev, page: 0 }));
   }, [viewMode]);
 
-  const toggleRowExpansion = (rowId: number) => {
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(rowId)) {
-      newExpanded.delete(rowId);
-    } else {
-      newExpanded.add(rowId);
-    }
-    setExpandedRows(newExpanded);
-  };
 
   const renderStatusCell = (params: GridRenderCellParams) => {
     const status = params.row.lookupStatus;
     const isEnriched = params.row.isEnriched;
     const failureReason = params.row.failureReason;
     const rowId = params.row.id;
-    const isExpanded = expandedRows.has(rowId);
     const hasMissingSymbol = !params.row.symbol;
     const hasMissingName = !params.row.name;
 
@@ -111,20 +100,15 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
     if (status === 'failed') {
       return (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, width: '100%' }}>
-          <Tooltip title="Click for more details" arrow>
+          <Tooltip title={failureReason || "Lookup failed"} arrow>
             <Chip
               icon={<ErrorIcon />}
               label="Not Found"
               color="error"
               size="small"
-              onClick={failureReason ? () => toggleRowExpansion(rowId) : undefined}
               sx={{
                 fontSize: '0.75rem',
                 height: 28,
-                cursor: failureReason ? 'pointer' : 'default',
-                '&:hover': failureReason ? {
-                  backgroundColor: 'error.dark',
-                } : {},
               }}
             />
           </Tooltip>
@@ -221,7 +205,8 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
   const renderNameCell = (params: GridRenderCellParams) => {
     const status = params.row.lookupStatus;
     const rowId = params.row.id;
-    const showRetry = status === 'failed';
+    const hasMissingData = !params.row.symbol || !params.row.name;
+    const showRetry = status === 'failed' && hasMissingData;
 
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
@@ -326,26 +311,6 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
     },
   ];
 
-  const getDetailPanelContent = React.useCallback(
-    ({ row }: GridRowParams) => {
-      if (row.lookupStatus === 'failed' && row.failureReason) {
-        return (
-          <Box sx={{ p: 2 }}>
-            <Alert severity="error" sx={{ fontSize: '0.95rem' }}>
-              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                Lookup Failed:
-              </Typography>
-              <Typography variant="body2">
-                {row.failureReason}
-              </Typography>
-            </Alert>
-          </Box>
-        );
-      }
-      return null;
-    },
-    []
-  );
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -361,7 +326,6 @@ export default function PortfolioTable({ data, viewMode, onLookupRow }: Portfoli
         onPaginationModelChange={setPaginationModel}
         pageSizeOptions={[10]}
         rowHeight={48}
-        getDetailPanelContent={getDetailPanelContent}
         isRowSelectable={() => false}
         disableColumnResize={true}
         sx={{
