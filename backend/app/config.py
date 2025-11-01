@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "production")
+FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY")
+CONCURRENCY_LIMIT = 2
+_client = None
 
 LOG_COLORS = {
     "RED": "\033[31m",
@@ -114,3 +117,13 @@ def setup_logger(name: str = __name__) -> CustomLogger:
     logger.propagate = False
 
     return CustomLogger(logger)
+
+
+def get_header() -> dict[any]:
+    if not FINNHUB_API_KEY:
+        raise ValueError("Invalid API Key")
+
+    headers = {}
+    headers["X-Finnhub-Token"] = FINNHUB_API_KEY
+
+    return headers
