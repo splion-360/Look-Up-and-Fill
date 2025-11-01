@@ -6,7 +6,7 @@ interface InfinityLoaderProps {
   size?: number;
 }
 
-export default function InfinityLoader({ size = 40 }: InfinityLoaderProps) {
+export default function InfinityLoader({ size = 50 }: InfinityLoaderProps) {
   const strokeWidth = size * 0.1;
   const markerSize = size * 0.15;
   

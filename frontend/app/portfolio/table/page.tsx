@@ -9,7 +9,7 @@ import Button from '@mui/material/Button';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Paper from '@mui/material/Paper';
-import LinearProgress from '@mui/material/LinearProgress';
+import InfinityLoader from '../../dashboard/components/InfinityLoader';
 import SearchIcon from '@mui/icons-material/Search';
 import DownloadIcon from '@mui/icons-material/Download';
 import ViewListIcon from '@mui/icons-material/ViewList';
@@ -17,8 +17,9 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PortfolioTable from '../../components/PortfolioTable';
 import ToastProvider from '../../dashboard/components/ToastProvider';
+import toast from 'react-hot-toast';
 import AppTheme from '../../shared-theme/AppTheme';
-import { PortfolioRow, LookupProgress } from '../../types/portfolio';
+import { PortfolioRow } from '../../types/portfolio';
 import { usePortfolioSession } from '../../hooks/usePortfolioSession';
 import { usePageTransition } from '../../hooks/usePageTransition';
 import PageTransitionLoader from '../../components/PageTransitionLoader';
@@ -30,13 +31,7 @@ export default function PortfolioTablePage() {
   const [portfolioData, setPortfolioData] = React.useState<PortfolioRow[]>([]);
   const [dataLoaded, setDataLoaded] = React.useState(false);
   const [viewMode, setViewMode] = React.useState<'all' | 'missing'>('all');
-  const [lookupProgress, setLookupProgress] = React.useState<LookupProgress>({
-    current: 0,
-    total: 0,
-    isProcessing: false,
-    completedRows: [],
-    failedRows: []
-  });
+  const [isProcessing, setIsProcessing] = React.useState(false);
 
   // Handle navigation with custom loading state
   const handleNavigation = (path: string) => {
@@ -112,6 +107,13 @@ export default function PortfolioTablePage() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (response.status === 429) {
+          toast.error('Rate limit exceeded. Please wait before trying again.');
+          setPortfolioData(prev => prev.map(r =>
+            r.id === rowId ? { ...r, lookupStatus: 'failed' as const, failureReason: 'Rate limit exceeded' } : r
+          ));
+          return;
+        }
         throw new Error(errorData.detail || 'Lookup failed');
       }
 
@@ -122,6 +124,13 @@ export default function PortfolioTablePage() {
       ));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Lookup service unavailable';
+      
+      if (errorMessage.includes('Rate limit exceeded') || errorMessage.includes('429')) {
+        toast.error('Rate limit exceeded. Please wait before trying again.');
+      } else {
+        toast.error(`Single lookup failed: ${errorMessage}`);
+      }
+      
       setPortfolioData(prev => prev.map(r =>
         r.id === rowId ? { ...r, lookupStatus: 'failed' as const, failureReason: errorMessage } : r
       ));
@@ -135,13 +144,7 @@ export default function PortfolioTablePage() {
       return;
     }
 
-    setLookupProgress({
-      current: 0,
-      total: missingRows.length,
-      isProcessing: true,
-      completedRows: [],
-      failedRows: []
-    });
+    setIsProcessing(true);
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/documents/lookup/full`, {
@@ -152,24 +155,32 @@ export default function PortfolioTablePage() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (response.status === 429) {
+          toast.error('Rate limit exceeded. Please wait before trying again.');
+          return;
+        }
         throw new Error(errorData.detail || 'Lookup failed');
       }
 
       const result = await response.json();
       setPortfolioData(result.data);
-      setLookupProgress(prev => ({ ...prev, current: missingRows.length }));
     } catch (error) {
       console.error('Lookup failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Lookup service unavailable';
 
-      // Mark all missing rows as failed with the error message
+      if (errorMessage.includes('Rate limit exceeded') || errorMessage.includes('429')) {
+        toast.error('Rate limit exceeded. Please wait before trying again.');
+      } else {
+        toast.error(`Lookup failed: ${errorMessage}`);
+      }
+
       setPortfolioData(prev => prev.map(r => {
         const isMissing = !r.symbol || !r.name;
         return isMissing ? { ...r, lookupStatus: 'failed' as const, failureReason: errorMessage } : r;
       }));
     }
 
-    setLookupProgress(prev => ({ ...prev, isProcessing: false }));
+    setIsProcessing(false);
   };
 
   const handleDownload = () => {
@@ -276,7 +287,7 @@ export default function PortfolioTablePage() {
                         size="large"
                         startIcon={<SearchIcon />}
                         onClick={handleLookupMissing}
-                        disabled={missingSymbolsCount === 0 || lookupProgress.isProcessing}
+                        disabled={missingSymbolsCount === 0 || isProcessing}
                         sx={{
                           fontSize: '1rem',
                           py: 1.5,
@@ -288,10 +299,14 @@ export default function PortfolioTablePage() {
                           }
                         }}
                       >
-                        {lookupProgress.isProcessing
-                          ? `Looking up... (${lookupProgress.current}/${lookupProgress.total})`
-                          : `Lookup All (${missingSymbolsCount})`
-                        }
+                        {isProcessing ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <InfinityLoader size={20} />
+                            Looking up...
+                          </Box>
+                        ) : (
+                          `Lookup All (${missingSymbolsCount})`
+                        )}
                       </Button>
                       <Button
                         variant="outlined"
@@ -310,19 +325,6 @@ export default function PortfolioTablePage() {
                     </Stack>
                   </Stack>
 
-                  {/* Progress Bar */}
-                  {lookupProgress.isProcessing && (
-                    <Box>
-                      <Typography variant="body1" gutterBottom sx={{ fontSize: '1rem', fontWeight: 500 }}>
-                        Processing {lookupProgress.current} of {lookupProgress.total} companies...
-                      </Typography>
-                      <LinearProgress
-                        variant="determinate"
-                        value={(lookupProgress.current / lookupProgress.total) * 100}
-                        sx={{ height: 8, borderRadius: 4 }}
-                      />
-                    </Box>
-                  )}
                 </Stack>
               </Paper>
 
