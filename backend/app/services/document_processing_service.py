@@ -32,7 +32,8 @@ async def search_with_query(query: str) -> list:
             response = await client.get(search_url)
             response.raise_for_status()
             data = response.json()
-            return data.get("result", [])
+            results = data.get("result", [])
+            return results
 
     except httpx.HTTPStatusError as e:
         raise HTTPException(
@@ -45,18 +46,40 @@ async def search_with_query(query: str) -> list:
     return []
 
 
+@retry_handler(MAX_RETRIES)
+async def search_with_symbol(symbol: str) -> dict:
+    base_url = "https://finnhub.io/api/v1/stock/profile2"
+    profile_url = f"{base_url}?symbol={symbol}"
+
+    try:
+        async with httpx.AsyncClient(headers=header, timeout=10.0) as client:
+            response = await client.get(profile_url)
+            response.raise_for_status()
+            profile_data = response.json()
+            return profile_data
+
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(
+            e.response.status_code, detail=f"Rate limit hit: {e.response.text}"
+        ) from e
+
+    except Exception as e:
+        raise HTTPException(500, detail="Internal Server Error") from e
+    return {}
+
+
 async def get_symbol_from_name(name: str) -> str | None:
     try:
         if not isinstance(name, str) or not name.strip():
-            logger.warning(f"Invalid name provided: {name}")
-            return None
+            logger.warning(f"Invalid name provided: {name or "UNK"}")
+            return
 
         data = name.lower().strip()
         data = data.replace(".", " ")
         entities = data.split()
 
         if not entities:
-            return None
+            return
 
         for word_count in range(len(entities), 0, -1):
             current_query = " ".join(entities[:word_count])
@@ -79,16 +102,16 @@ async def get_symbol_from_name(name: str) -> str | None:
             logger.info(
                 f"No results found for any variation of: {name}", "CYAN"
             )
-            return None
+            return
 
         for result in company_info:
             symbol = result.get("symbol", "")
             company_name = result.get("description", "")
 
             if symbol and company_name:
-                if name == company_name.lower().strip():
+                if name.lower().strip() == company_name.lower().strip():
                     logger.info(
-                        f"Found exact match - {symbol} for {name}", COLOR
+                        f"Found exact match: {symbol} for {name}", COLOR
                     )
                     return symbol
 
@@ -100,7 +123,9 @@ async def get_symbol_from_name(name: str) -> str | None:
             company_name = result.get("description", "")
 
             if symbol and company_name:
-                distance = hamming_distance(name, company_name.lower().strip())
+                distance = hamming_distance(
+                    name.lower().strip(), company_name.lower().strip()
+                )
                 if distance < min_distance:
                     min_distance = distance
                     best_match = symbol
@@ -112,7 +137,7 @@ async def get_symbol_from_name(name: str) -> str | None:
             )
             return best_match
 
-        return None
+        return
 
     except httpx.HTTPStatusError as e:
         raise HTTPException(
@@ -125,27 +150,6 @@ async def get_symbol_from_name(name: str) -> str | None:
         ) from e
 
 
-@retry_handler(MAX_RETRIES)
-async def get_profile_for_symbol(symbol: str) -> dict:
-    base_url = "https://finnhub.io/api/v1/stock/profile2"
-    profile_url = f"{base_url}?symbol={symbol}"
-
-    try:
-        async with httpx.AsyncClient(headers=header, timeout=10.0) as client:
-            response = await client.get(profile_url)
-            response.raise_for_status()
-            return response.json()
-
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(
-            e.response.status_code, detail=f"Rate limit hit: {e.response.text}"
-        ) from e
-
-    except Exception as e:
-        raise HTTPException(500, detail="Internal Server Error") from e
-    return {}
-
-
 async def get_name_from_symbol(symbol: str) -> str | None:
     try:
         if not is_valid(symbol):
@@ -154,14 +158,14 @@ async def get_name_from_symbol(symbol: str) -> str | None:
         logger.info(f"Calling get_name_from_symbol with {symbol}", COLOR)
         if not isinstance(symbol, str) or not symbol.strip():
             logger.warning(f"Invalid symbol provided: {symbol}")
-            return None
+            return
 
         symbol_clean = symbol.upper().strip()
-        data = await get_profile_for_symbol(symbol_clean)
+        data = await search_with_symbol(symbol_clean)
 
         if not data or not isinstance(data, dict):
             logger.info(f"No company data found for symbol: {symbol}", "CYAN")
-            return None
+            return
 
         name = data.get("name", "")
         if name and name.strip():
@@ -171,7 +175,7 @@ async def get_name_from_symbol(symbol: str) -> str | None:
             return name.strip()
         else:
             logger.info(f"No company name found for symbol: {symbol}", "CYAN")
-            return None
+            return
 
     except Exception as e:
         raise HTTPException(
@@ -180,23 +184,52 @@ async def get_name_from_symbol(symbol: str) -> str | None:
 
 
 async def process_csv_file(file: UploadFile) -> dict[str, Any]:
+    if not file.filename or not file.filename.lower().endswith(".csv"):
+
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Only CSV files are allowed.",
+        )
+
     try:
         content = await file.read()
+        if len(content) == 0:
+            raise HTTPException(status_code=400, detail="Empty file uploaded.")
+
         logger.info(f"Processing CSV file: {file.filename}")
         csv_string = content.decode("utf-8")
+
         df = pd.read_csv(io.StringIO(csv_string))
 
         logger.info(f"# of Rows: {len(df)}", COLOR)
+
+        columns = df.columns
+        available_columns = [col.lower().strip() for col in columns]
+
+        has_name_field = any("name" in col for col in available_columns)
+        has_symbol_field = any("symbol" in col for col in available_columns)
+
+        if not has_name_field:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file: must contain a COMPANY NAME field or similar",
+            )
+        if not has_symbol_field:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file: must contain a SYMBOL field or similar",
+            )
+
         missing_data = df.isnull().sum()
 
         # Rename the columsn to remain consistent
-        columns = df.columns
 
         for field in ["shares", "price", "market"]:
             closest = [
                 name for name in columns if field in name.lower().strip()
             ]
-            df.rename(columns={closest[-1]: field}, inplace=True)
+            if closest:
+                df.rename(columns={closest[-1]: field}, inplace=True)
 
         data = {
             "total_rows": len(df),
@@ -212,17 +245,18 @@ async def process_csv_file(file: UploadFile) -> dict[str, Any]:
         raise HTTPException(
             status_code=400, detail="Failed to parse the uploaded file"
         ) from e
-    except pd.errors.EmptyDataError as e:
-        raise HTTPException(status_code=400, detail="CSV file is empty") from e
     except pd.errors.ParserError as e:
         raise HTTPException(
             status_code=400, detail=f"CSV parsing error: {str(e)}"
         ) from e
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail="Internal server error during file processing",
-        ) from e
+        if isinstance(e, HTTPException) and e.status_code == 400:
+            raise e
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Internal server error during file processing",
+            ) from e
 
 
 async def process_single(row: dict) -> dict:
@@ -286,6 +320,13 @@ async def lookup_missing_data(data: list[dict]) -> dict[str, Any]:
         missing_rows = [
             row for row in data if not row.get("symbol") or not row.get("name")
         ]
+
+        if len(missing_rows) == 0:
+            logger.info(
+                "Table is complete (or) Invalid fields. Not proceeding further!!",
+                "CYAN",
+            )
+            return {}
 
         logger.info(f"Found {len(missing_rows)} rows with missing data", COLOR)
 

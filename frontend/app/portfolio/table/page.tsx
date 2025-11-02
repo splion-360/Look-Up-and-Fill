@@ -192,7 +192,11 @@ export default function PortfolioTablePage() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `enriched_portfolio.csv`;
+    
+    const originalFileName = sessionData?.fileName || 'portfolio.csv';
+    const fileNameWithoutExtension = originalFileName.replace(/\.csv$/i, '');
+    a.download = `${fileNameWithoutExtension}_filled.csv`;
+    
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

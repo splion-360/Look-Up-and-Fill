@@ -1,0 +1,11 @@
+name,symbol,shares,price
+Apple Inc.,AAPL123,100,150.00
+Microsoft Corporation,XYZNON,75,350.00
+Fake Company Ltd.,FAKESYMBOL,50,100.00
+Non Existent Corp,BADTICKER,200,50.00
+Invalid Symbol Inc.,12345,150,75.00
+Wrong Ticker Co.,NOTREAL,80,200.00
+Made Up Business,FAKESTOCK,120,30.00
+Bogus Corporation,INVALID123,300,25.00
+Test Company,TESTTICKER,250,40.00
+Demo Business,DEMO123,90,60.00

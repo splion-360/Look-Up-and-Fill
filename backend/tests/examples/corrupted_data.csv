@@ -1,0 +1,11 @@
+name,symbol,shares,price
+Apple Inc.,AAPL,100,150.00
+Microsoft Corporation,MSFT,abc,350.00
+Alphabet Inc.,GOOGL,50,invalid_price
+Meta Platforms Inc.,META,,320.00
+Tesla Inc.,TSLA,150,
+NVIDIA Corporation,,80,900.00
+Amazon.com Inc.,AMZN,-50,140.00
+Intel Corporation,INTC,300,0
+Advanced Micro Devices Inc.,AMD,999999999,120.00
+Salesforce Inc.,CRM,90,-10.50

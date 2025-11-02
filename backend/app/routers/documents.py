@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, Request, UploadFile
 
 from app.core.config import settings
 from app.schemas.documents import (
@@ -18,8 +18,13 @@ _file = File(...)
 
 @router.post("/upload", response_model=UploadResponse)
 async def upload_document(file: UploadFile = _file):
-    result = await process_csv_file(file)
-    return result
+    try:
+        result = await process_csv_file(file)
+        return result
+
+    except Exception as e:
+
+        raise e
 
 
 @router.post("/lookup/full", response_model=LookupResponse)
@@ -40,3 +45,22 @@ async def root():
         "message": "document cleaner service is up and running",
         "version": settings.version,
     }
+
+
+@router.post("/_private/rl/reset")
+async def clear_rate_limits(request: Request):
+    rate_limiter = request.app.state.rate_limiter
+
+    forwarded_for = request.headers.get("X-Forwarded-For", request.client.host)
+    if forwarded_for:
+        client_ip = forwarded_for.split(",")[0].strip()
+    else:
+        real_ip = request.headers.get("X-Real-IP")
+        client_ip = (
+            real_ip
+            if real_ip
+            else (request.client.host if request.client else "UNK")
+        )
+
+    rate_limiter.reset_rate_limits(client_ip)
+    return {"message": "Rate limits cleared"}

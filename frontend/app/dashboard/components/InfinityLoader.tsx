@@ -50,22 +50,34 @@ export default function InfinityLoader({ size = 50 }: InfinityLoaderProps) {
           borderRadius: '50%',
           position: 'absolute',
           boxShadow: '0 0 4px rgba(0,0,0,0.3)',
-          animation: 'infinityMove 2s infinite ease-in-out',
+          animation: 'infinityMove 3s infinite ease-in-out',
           '@keyframes infinityMove': {
             '0%': {
-              transform: `translate(${-size * 0.3}px, 0px)`,
+              transform: `translate(${-size * 0.2}px, 0px)`,
+            },
+            '12.5%': {
+              transform: `translate(${-size * 0.1}px, ${-size * 0.15}px)`,
             },
             '25%': {
-              transform: `translate(0px, ${-size * 0.3}px)`,
+              transform: `translate(0px, 0px)`,
+            },
+            '37.5%': {
+              transform: `translate(${size * 0.1}px, ${size * 0.15}px)`,
             },
             '50%': {
-              transform: `translate(${size * 0.3}px, 0px)`,
+              transform: `translate(${size * 0.2}px, 0px)`,
+            },
+            '62.5%': {
+              transform: `translate(${size * 0.1}px, ${-size * 0.15}px)`,
             },
             '75%': {
-              transform: `translate(0px, ${size * 0.3}px)`,
+              transform: `translate(0px, 0px)`,
+            },
+            '87.5%': {
+              transform: `translate(${-size * 0.1}px, ${size * 0.15}px)`,
             },
             '100%': {
-              transform: `translate(${-size * 0.3}px, 0px)`,
+              transform: `translate(${-size * 0.2}px, 0px)`,
             },
           }
         }}

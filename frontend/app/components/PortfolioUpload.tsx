@@ -134,7 +134,6 @@ export default function PortfolioUpload({ onUploadSuccess }: PortfolioUploadProp
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
       setError(errorMessage);
       setUploadSuccess(false);
-      showToast(`Upload failed: ${errorMessage}`, 'error');
     } finally {
       const elapsedTime = Date.now() - startTime;
       const minDuration = 2000;

@@ -1,0 +1,31 @@
+name,symbol,shares,price
+Apple Inc.,,100,150.00
+,MSFT,75,350.00
+Alphabet Inc.,,50,2800.00
+,META,200,320.00
+Tesla Inc.,,150,250.00
+,NVDA,80,900.00
+Amazon.com Inc.,,120,140.00
+,INTC,300,45.00
+Salesforce Inc.,,90,210.00
+,ORCL,180,85.00
+Netflix Inc.,,60,450.00
+,ADBE,70,380.00
+PayPal Holdings Inc.,,150,75.00
+,UBER,300,42.00
+Airbnb Inc.,,80,125.00
+,ZM,180,68.00
+JPMorgan Chase & Co.,,200,150.00
+,BAC,400,35.00
+Wells Fargo & Company,,350,45.00
+,GS,75,380.00
+Johnson & Johnson,,180,165.00
+,PFE,400,38.00
+UnitedHealth Group Inc.,,60,520.00
+,PG,140,145.00
+Coca-Cola Company,,250,60.00
+,PEP,200,170.00
+McDonald's Corporation,,110,275.00
+,NKE,130,105.00
+Home Depot Inc.,,85,330.00
+,WMT,160,145.00

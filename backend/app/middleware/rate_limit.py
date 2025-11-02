@@ -45,6 +45,14 @@ class RateLimitMiddleware:
         self.cleanup_task = None
 
     async def __call__(self, request: Request, call_next):
+        if "_private" in str(request.url.path):
+            # Whitelisting _private endpoints.
+            # Otherwise even the request to reset them will be rate limited
+            logger.info(f"Whitelisting: {request.url}", "CYAN")
+
+            response = await call_next(request)
+            return response
+
         client_ip = self._get_client_ip(request)
 
         if client_ip not in self.buckets:
@@ -70,8 +78,6 @@ class RateLimitMiddleware:
         return response
 
     def _get_client_ip(self, request: Request) -> str:
-        logger.info(f"Request: {request.headers}", "YELLOW")
-
         forwarded_for = request.headers.get(
             "X-Forwarded-For", request.client.host
         )
@@ -100,3 +106,10 @@ class RateLimitMiddleware:
 
         for ip in expired_ips:
             del self.buckets[ip]
+
+    def reset_rate_limits(self, ip: str):
+        if ip in self.buckets:
+            capacity = self.requests_per_minute
+            refill_rate = self.requests_per_minute / 60.0
+            self.buckets[ip] = TokenBucket(capacity, refill_rate)
+            logger.info(f"Rate limit reset for IP: {ip}", "BLUE")

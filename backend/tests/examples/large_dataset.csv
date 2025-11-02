@@ -1,0 +1,104 @@
+name,symbol,shares,price
+Apple Inc.,AAPL,100,150.00
+Microsoft Corporation,MSFT,75,350.00
+Alphabet Inc.,GOOGL,50,2800.00
+Meta Platforms Inc.,META,200,320.00
+Tesla Inc.,TSLA,150,250.00
+NVIDIA Corporation,NVDA,80,900.00
+Amazon.com Inc.,AMZN,120,140.00
+Intel Corporation,INTC,300,45.00
+Advanced Micro Devices Inc.,AMD,250,120.00
+Salesforce Inc.,CRM,90,210.00
+Oracle Corporation,ORCL,180,85.00
+IBM Corporation,IBM,220,130.00
+Cisco Systems Inc.,CSCO,400,50.00
+Netflix Inc.,NFLX,60,450.00
+Adobe Inc.,ADBE,70,380.00
+PayPal Holdings Inc.,PYPL,150,75.00
+Uber Technologies Inc.,UBER,300,42.00
+Airbnb Inc.,ABNB,80,125.00
+Zoom Video Communications,ZM,180,68.00
+Palantir Technologies Inc.,PLTR,500,18.00
+JPMorgan Chase & Co.,JPM,200,150.00
+Bank of America Corporation,BAC,400,35.00
+Wells Fargo & Company,WFC,350,45.00
+Goldman Sachs Group Inc.,GS,75,380.00
+Morgan Stanley,MS,150,95.00
+Citigroup Inc.,C,300,55.00
+American Express Company,AXP,100,175.00
+Charles Schwab Corporation,SCHW,250,70.00
+BlackRock Inc.,BLK,50,750.00
+Visa Inc.,V,120,260.00
+Mastercard Incorporated,MA,90,350.00
+Berkshire Hathaway Inc.,BRK.B,25,320.00
+Johnson & Johnson,JNJ,180,165.00
+Pfizer Inc.,PFE,400,38.00
+UnitedHealth Group Inc.,UNH,60,520.00
+Procter & Gamble Co.,PG,140,145.00
+Coca-Cola Company,KO,250,60.00
+PepsiCo Inc.,PEP,200,170.00
+McDonald's Corporation,MCD,110,275.00
+Nike Inc.,NKE,130,105.00
+Home Depot Inc.,HD,85,330.00
+Walmart Inc.,WMT,160,145.00
+Target Corporation,TGT,120,150.00
+Costco Wholesale Corporation,COST,40,550.00
+Starbucks Corporation,SBUX,180,95.00
+Walt Disney Company,DIS,150,95.00
+Comcast Corporation,CMCSA,300,42.00
+Verizon Communications Inc.,VZ,280,40.00
+AT&T Inc.,T,350,18.00
+T-Mobile US Inc.,TMUS,100,165.00
+Company A Ltd.,,100,50.00
+,SYMB1,75,25.00
+Company B Inc.,TICK2,200,75.00
+,SYMB3,150,30.00
+Company C Corp.,,80,60.00
+,TICK4,120,45.00
+Company D LLC,SYMB5,300,20.00
+,TICK6,250,35.00
+Company E Ltd.,,90,55.00
+,SYMB7,180,40.00
+Company F Inc.,TICK8,220,65.00
+,SYMB9,400,15.00
+Company G Corp.,,60,70.00
+,TICK10,70,80.00
+Company H LLC,SYMB11,150,25.00
+,TICK12,300,30.00
+Company I Ltd.,,80,85.00
+,SYMB13,180,45.00
+Company J Inc.,TICK14,500,10.00
+,SYMB15,25,90.00
+Company K Corp.,,140,55.00
+,TICK16,200,35.00
+Company L LLC,SYMB17,350,20.00
+,TICK18,110,75.00
+Company M Ltd.,,90,65.00
+,SYMB19,160,40.00
+Company N Inc.,TICK20,250,50.00
+,SYMB21,400,15.00
+Company O Corp.,,60,80.00
+,TICK22,70,85.00
+Company P LLC,SYMB23,150,30.00
+,TICK24,300,25.00
+Company Q Ltd.,,80,70.00
+,SYMB25,180,45.00
+Company R Inc.,TICK26,220,60.00
+,SYMB27,400,20.00
+Company S Corp.,,100,75.00
+,TICK28,75,90.00
+Company T LLC,SYMB29,200,35.00
+,TICK30,150,55.00
+Company U Ltd.,,80,65.00
+,SYMB31,120,40.00
+Company V Inc.,TICK32,300,25.00
+,SYMB33,250,45.00
+Company W Corp.,,90,70.00
+,TICK34,180,50.00
+Company X LLC,SYMB35,220,30.00
+,TICK36,400,20.00
+Company Y Ltd.,,60,80.00
+,SYMB37,70,85.00
+Company Z Inc.,TICK38,150,55.00
+,SYMB39,300,35.00
+Final Company Corp.,,100,60.00
