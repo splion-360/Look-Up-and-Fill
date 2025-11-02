@@ -1,0 +1,6 @@
+name,symbol,shares,price,market_cap,sector,country
+Apple Inc.,AAPL,100,150.00,2500000000,Technology,USA
+Microsoft Corporation,MSFT,75,350.00,2800000000,Technology,USA
+Alphabet Inc.,GOOGL,50,2800.00,1800000000,Technology,USA
+Meta Platforms Inc.,META,200,320.00,850000000,Technology,USA
+Tesla Inc.,TSLA,150,250.00,800000000,Automotive,USA

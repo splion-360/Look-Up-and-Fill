@@ -3,7 +3,8 @@
 A prototype web application that parses portfolio files and fills in missing ticker symbols and company names through third party services __(Finnhub API)__.
 
 
-## Project Design
+## Design
+![system design](assets/system-design.svg)
 
 - **Frontend**: Next.js 15.5.4 with TypeScript and Material-UI components
 - **Backend**: FastAPI with Python 3.12+ and `pandas` for data processing
@@ -31,8 +32,9 @@ A prototype web application that parses portfolio files and fills in missing tic
    ```bash
    pip install -r requirements.txt
    ```
+4. Rename `.env.local` as `.env` and store your secrets. Visit [Finnhub](https://finnhub.io/) to create your API key
 
-4. Start the FastAPI server:
+5. Start the FastAPI server:
    ```bash
    uvicorn app.main:app --reload --port 8000
    ```
@@ -80,6 +82,12 @@ Perform _batched_ lookup for all missing portfolio data.
 
 #### POST /api/v1/documents/lookup/single
 Perform lookup for a single portfolio row.
+
+## Testing (Optional)
+
+To run the pytest suite including performance metrics (P50, P99 latency, throughput) and stress testing, 
+- Install [ngrok](https://ngrok.com/download/linux), start your backend server, then run `ngrok http <BACKEND_PORT>` in a new terminal. 
+- Set the NGROK URL as `export NGROK_TUNNEL_URL="<YOUR_NGROK_URL.app>"` and execute `pytest -s` from the backend directory to run tests. 
 
 
 

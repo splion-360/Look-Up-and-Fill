@@ -24,6 +24,8 @@ app.add_middleware(
 rate_limiter = RateLimitMiddleware(REQUEST_PER_MINUTE)
 app.middleware("http")(rate_limiter)
 
+app.state.rate_limiter = rate_limiter
+
 app.include_router(
     documents.router,
     prefix=f"{settings.prefix}/documents",
