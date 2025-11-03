@@ -70,7 +70,7 @@ class PerformanceMetrics:
         return {
             "total_requests": len(self.response_times),
             "successful_requests": sum(
-                1 for code in self.status_codes if code == 200
+                1 for code in self.status_codes if code == 200 or code == 201
             ),
             "rate_limited_requests": sum(
                 1 for code in self.status_codes if code == 429
@@ -91,7 +91,11 @@ class PerformanceMetrics:
             "p95_latency_ms": self._percentile(sorted_times, 95) * 1000,
             "p99_latency_ms": self._percentile(sorted_times, 99) * 1000,
             "success_rate": (
-                sum(1 for code in self.status_codes if code == 200)
+                sum(
+                    1
+                    for code in self.status_codes
+                    if code == 200 or code == 201
+                )
                 / len(self.status_codes)
             )
             * 100,

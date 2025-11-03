@@ -22,6 +22,10 @@ PORT = 8000
 MAX_RETRIES = 3
 MAX_WORKERS = 6
 REQUEST_PER_MINUTE = 30
+CACHE_TTL = 300  # s 5 minutes
+MAX_CACHE_CAPACITY = 1000
+DIST_THRESH = 10
+
 LOG_COLORS = {
     "RED": "\033[31m",
     "GREEN": "\033[32m",
@@ -199,3 +203,21 @@ def hamming_distance(s1: str, s2: str) -> int:
     if len(s1) != len(s2):
         return max(len(s1), len(s2))
     return sum(c1 != c2 for c1, c2 in zip(s1, s2, strict=False))
+
+
+def levenshtein_distance(s1: str, s2: str) -> int:
+    dp = [
+        [float("inf") for _ in range(len(s2) + 1)] for _ in range(len(s1) + 1)
+    ]
+    for i in range(len(s1) + 1):
+        dp[i][len(s2)] = len(s1) - i
+    for j in range(len(s2) + 1):
+        dp[len(s1)][j] = len(s2) - j
+
+    for i in range(len(s1) - 1, -1, -1):
+        for j in range(len(s2) - 1, -1, -1):
+            if s1[i] == s2[j]:
+                dp[i][j] = dp[i + 1][j + 1]
+            else:
+                dp[i][j] = 1 + min(dp[i][j + 1], dp[i + 1][j], dp[i + 1][j + 1])
+    return dp[0][0]

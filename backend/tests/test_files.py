@@ -7,6 +7,7 @@ import time
 import pytest
 import requests
 
+from app.services.cache_service import test_cache
 from app.utils import setup_logger
 
 
@@ -350,3 +351,117 @@ class TestAssetsPerformance:
         logger.info(f"Average Response Time: {avg_time:.2f}ms", "BLUE")
 
         assert len(results) > 0
+
+
+class TestCache:
+    def test_cache_symbol_to_name(self):
+        test_cache.clear_cache()
+
+        test_cache.set_symbol_to_name("AAPL", "Apple Inc.")
+        cached_name = test_cache.get_name_from_symbol("AAPL")
+
+        assert cached_name == "Apple Inc."
+
+        cached_name_lower = test_cache.get_name_from_symbol("aapl")
+        assert cached_name_lower == "Apple Inc."
+
+        non_existent = test_cache.get_name_from_symbol("NONEXISTENT")
+        assert non_existent is None
+
+        test_cache.clear_cache()
+
+    def test_cache_name_to_symbols(self):
+        test_cache.clear_cache()
+
+        search_results = [
+            {"symbol": "AAPL", "description": "Apple Inc."},
+            {"symbol": "AAPL.SW", "description": "Apple Swiss"},
+            {"symbol": "AAPL.MX", "description": "Apple Mexico"},
+            {"symbol": "AAPL.DE", "description": "Apple German Xetra"},
+            {"symbol": "AAPL.BA", "description": "Apple Buenos Aires"},
+            {"symbol": "AAPL.F", "description": "Apple Frankfurt"},
+            {"symbol": "AAPL.MI", "description": "Apple Milan"},
+            {"symbol": "AAPL.TI", "description": "Apple Italian Exchange"},
+            {"symbol": "AAPL.BE", "description": "Apple Berlin"},
+            {"symbol": "AAPL.VI", "description": "Apple Vienna"},
+            {"symbol": "AAPL.L", "description": "Apple London"},
+            {"symbol": "AAPL.PA", "description": "Apple Paris"},
+            {"symbol": "AAPL.AS", "description": "Apple Amsterdam"},
+            {"symbol": "AAPL.TRT", "description": "Apple Turkey"},
+        ]
+
+        test_cache.set_name_to_symbols("Apple Inc.", search_results)
+        cached_symbol = test_cache.get_symbol_from_name("apple")
+
+        assert cached_symbol == "AAPL"
+
+        cached_symbol_lower = test_cache.get_symbol_from_name("apple turkey")
+        assert cached_symbol_lower == "AAPL.TRT"
+
+        test_cache.clear_cache()
+
+    def test_cache_stats(self):
+        test_cache.clear_cache()
+
+        stats = test_cache.get_cache_stats()
+        assert stats["symbol_to_name_cache_size"] == 0
+        assert stats["name_to_results_cache_size"] == 0
+        assert stats["bk_tree_size"] == 0
+
+        test_cache.set_symbol_to_name("TSLA", "Tesla Inc.")
+        test_cache.set_name_to_symbols(
+            "Tesla Inc.", [{"symbol": "TSLA", "description": "Tesla Inc."}]
+        )
+
+        stats = test_cache.get_cache_stats()
+        assert stats["symbol_to_name_cache_size"] == 1
+        assert stats["name_to_results_cache_size"] == 1
+        assert stats["bk_tree_size"] == 1
+
+        test_cache.clear_cache()
+
+    def test_cache_clear(self):
+        test_cache.set_symbol_to_name("TEST", "Test Company")
+        test_cache.set_name_to_symbols(
+            "Test Company", [{"symbol": "TEST", "description": "Test Company"}]
+        )
+
+        stats_before = test_cache.get_cache_stats()
+        assert stats_before["symbol_to_name_cache_size"] > 0
+
+        test_cache.clear_cache()
+
+        stats_after = test_cache.get_cache_stats()
+        assert stats_after["symbol_to_name_cache_size"] == 0
+        assert stats_after["name_to_results_cache_size"] == 0
+        assert stats_after["bk_tree_size"] == 0
+
+    def test_cache_multiple_results(self):
+        test_cache.clear_cache()
+
+        search_results = [
+            {"symbol": "GOOGL", "description": "Alphabet Inc. Class A"},
+            {"symbol": "GOOG", "description": "Alphabet Inc. Class C"},
+        ]
+
+        test_cache.set_name_to_symbols("Alphabet Inc.", search_results)
+        cached_symbol = test_cache.get_symbol_from_name("Alphabet Inc.")
+
+        assert cached_symbol in ["GOOGL", "GOOG"]
+
+        test_cache.clear_cache()
+
+    def test_cache_edge_cases(self):
+        test_cache.clear_cache()
+
+        empty_result = test_cache.get_symbol_from_name("")
+        assert empty_result is None
+
+        none_result = test_cache.get_name_from_symbol("")
+        assert none_result is None
+
+        test_cache.set_name_to_symbols("Test", [])
+        empty_cache_result = test_cache.get_symbol_from_name("Test")
+        assert empty_cache_result is None
+
+        test_cache.clear_cache()
