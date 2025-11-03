@@ -20,7 +20,7 @@ from app.utils import (
 
 logger = setup_logger(__name__)
 header = get_header()
-COLOR = "BLUE"
+COLOR = "CYAN"
 
 
 @retry_handler(MAX_RETRIES)
@@ -165,7 +165,7 @@ async def get_name_from_symbol(symbol: str) -> str | None:
 
         cached_name = company_cache.get_name_from_symbol(symbol)
         if cached_name:
-            logger.info(f"Cache hit: {symbol} -> {cached_name}", "GREEN")
+            logger.info(f"Cache hit: {symbol} -> {cached_name}", "WHITE")
             return cached_name
 
         logger.info(f"Calling get_name_from_symbol with {symbol}", COLOR)

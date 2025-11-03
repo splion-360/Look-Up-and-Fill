@@ -5,7 +5,9 @@ import time
 
 import pytest
 import requests
+from fastapi.testclient import TestClient
 
+from app.main import app
 from app.utils import setup_logger
 
 
@@ -147,7 +149,7 @@ class TestPerformance:
         assert stats["total_requests"] == 30
         assert stats["availability"] > 50
 
-    def test_upload_metrics(self, base_url):
+    def test_upload_metrics(self, base_url, headers):
         metrics = PerformanceMetrics()
         csv_data = "name,symbol,shares,price\nApple Inc.,AAPL,100,150.00\nGoogle Inc.,GOOGL,50,2500.00"
         clear_rate_limits(base_url, headers)
@@ -173,7 +175,6 @@ class TestPerformance:
 
         stats = metrics.get_stats()
 
-        logger.info("Web Upload Performance Analysis:", "CYAN")
         logger.info(f"Success Rate: {stats['success_rate']:.1f}%", "GREEN")
         logger.info(f"P50 Upload Time: {stats['p50_latency_ms']:.2f}ms", "BLUE")
         logger.info(f"P99 Upload Time: {stats['p99_latency_ms']:.2f}ms", "BLUE")
@@ -198,9 +199,15 @@ class TestPerformance:
                 return end_time - start_time, 0, str(e)
 
         start_test = time.time()
+        workers = 8
+        queries = 50
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-            futures = [executor.submit(make_web_request) for _ in range(25)]
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=workers
+        ) as executor:
+            futures = [
+                executor.submit(make_web_request) for _ in range(queries)
+            ]
             results = [
                 future.result()
                 for future in concurrent.futures.as_completed(futures)
@@ -216,15 +223,18 @@ class TestPerformance:
         throughput = stats["total_requests"] / total_time
 
         logger.info(f"Total Time: {total_time:.2f}s", "GREEN")
-        logger.info(f"RPS (throughput): {throughput:.2f}", "GREEN")
+        logger.info(
+            f"RPS (throughput): {throughput:.2f}  \nWorkers: {workers} \nRequests: {queries}",
+            "GREEN",
+        )
         logger.info(
             f"Successful Requests: {stats['successful_requests']}", "GREEN"
         )
-        logger.info(f"Rate Limited: {stats['rate_limited_requests']}", "YELLOW")
+        logger.info(f"Rate Limited: {stats['rate_limited_requests']}", "GREEN")
         logger.info(f"Network Errors: {stats['network_errors']}", "YELLOW")
         logger.info(f"P50 Latency: {stats['p50_latency_ms']:.2f}ms", "BLUE")
         logger.info(f"P99 Latency: {stats['p99_latency_ms']:.2f}ms", "BLUE")
-        assert stats["total_requests"] == 25
+        assert stats["total_requests"] == queries
         assert throughput > 0
 
     def test_lookup_performance_metrics(self, base_url, headers):
@@ -308,40 +318,64 @@ class TestPerformance:
             or stats["successful_requests"] > 0
         )
 
-    def test_error_resilience(self, base_url, headers):
-        clear_rate_limits(base_url, headers)
-
+    def test_throughput_metrics_local(self):
+        client = TestClient(app)
         metrics = PerformanceMetrics()
 
-        invalid_endpoints = [
-            f"{base_url}/nonexistent",
-            f"{base_url}/api/v1/invalid",
-            f"{base_url}/api/v1/documents/invalid",
-        ]
+        def make_local_request():
+            start_time = time.time()
+            try:
+                response = client.get("/")
+                end_time = time.time()
+                return end_time - start_time, response.status_code, None
+            except Exception as e:
+                end_time = time.time()
+                return end_time - start_time, 0, str(e)
 
-        for endpoint in invalid_endpoints:
-            for _ in range(3):
-                start_time = time.time()
-                try:
-                    response = requests.get(
-                        endpoint, headers=headers, timeout=20
-                    )
-                    end_time = time.time()
-                    metrics.add_result(
-                        end_time - start_time, response.status_code
-                    )
-                except requests.exceptions.RequestException as e:
-                    end_time = time.time()
-                    metrics.add_result(end_time - start_time, 0, str(e))
+        start_test = time.time()
+        workers = 8
+        queries = 50
+
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=workers
+        ) as executor:
+            futures = [
+                executor.submit(make_local_request) for _ in range(queries)
+            ]
+            results = [
+                future.result()
+                for future in concurrent.futures.as_completed(futures)
+            ]
+
+        end_test = time.time()
+
+        for response_time, status_code, error in results:
+            metrics.add_result(response_time, status_code, error)
 
         stats = metrics.get_stats()
+        total_time = end_test - start_test
+        throughput = stats["total_requests"] / total_time
 
-        logger.info(f"Client Errors (4xx): {stats['client_errors']}", "YELLOW")
-        logger.info(f"Server Errors (5xx): {stats['server_errors']}", "RED")
-        logger.info(f"Network Errors: {stats['network_errors']}", "RED")
+        logger.info(f"Local Total Time: {total_time:.2f}s", "GREEN")
         logger.info(
-            f"Average Error Response Time: {stats['mean_latency_ms']:.2f}ms",
-            "BLUE",
+            f"Local RPS (throughput): {throughput:.2f}  \nWorkers: {workers} \nRequests: {queries}",
+            "GREEN",
         )
-
-        assert stats["total_requests"] == 9
+        logger.info(
+            f"Local Successful Requests: {stats['successful_requests']}",
+            "GREEN",
+        )
+        logger.info(
+            f"Local Rate Limited: {stats['rate_limited_requests']}", "GREEN"
+        )
+        logger.info(
+            f"Local Network Errors: {stats['network_errors']}", "YELLOW"
+        )
+        logger.info(
+            f"Local P50 Latency: {stats['p50_latency_ms']:.2f}ms", "BLUE"
+        )
+        logger.info(
+            f"Local P99 Latency: {stats['p99_latency_ms']:.2f}ms", "BLUE"
+        )
+        assert stats["total_requests"] == queries
+        assert throughput > 0

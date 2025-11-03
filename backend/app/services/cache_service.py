@@ -145,7 +145,7 @@ class Cache:
 
             self._rebuild_bk_tree()
             self._save_bk_tree_data()
-            logger.info(
+            logger.debug(
                 f"Cached name->symbols: {name} -> {len(search_results)} results",
                 "WHITE",
             )
