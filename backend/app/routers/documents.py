@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, Request, UploadFile
+from fastapi import APIRouter, File, Request, Response, UploadFile
 
 from app.core.config import settings
 from app.schemas.documents import (
@@ -23,20 +23,29 @@ async def upload_document(file: UploadFile = _file):
         return result
 
     except Exception as e:
-
         raise e
 
 
 @router.post("/lookup/full", response_model=LookupResponse)
-async def lookup_missing(lookup_request: LookupRequest):
-    result = await lookup_missing_data(lookup_request.data)
-    return result
+async def lookup_missing(lookup_request: LookupRequest, response: Response):
+    try:
+        result = await lookup_missing_data(lookup_request.data)
+        if result.get("cache_hits", 0) > 0:
+            response.status_code = 201
+        return result
+    except Exception as e:
+        raise e
 
 
 @router.post("/lookup/single", response_model=LookupResponse)
-async def lookup_single(lookup_request: LookupRequest):
-    result = await lookup_missing_data(lookup_request.data)
-    return result
+async def lookup_single(lookup_request: LookupRequest, response: Response):
+    try:
+        result = await lookup_missing_data(lookup_request.data)
+        if result.get("cache_hits", 0) > 0:
+            response.status_code = 201
+        return result
+    except Exception as e:
+        raise e
 
 
 @router.get("/")
@@ -49,18 +58,23 @@ async def root():
 
 @router.post("/_private/rl/reset")
 async def clear_rate_limits(request: Request):
-    rate_limiter = request.app.state.rate_limiter
+    try:
+        rate_limiter = request.app.state.rate_limiter
 
-    forwarded_for = request.headers.get("X-Forwarded-For", request.client.host)
-    if forwarded_for:
-        client_ip = forwarded_for.split(",")[0].strip()
-    else:
-        real_ip = request.headers.get("X-Real-IP")
-        client_ip = (
-            real_ip
-            if real_ip
-            else (request.client.host if request.client else "UNK")
+        forwarded_for = request.headers.get(
+            "X-Forwarded-For", request.client.host
         )
+        if forwarded_for:
+            client_ip = forwarded_for.split(",")[0].strip()
+        else:
+            real_ip = request.headers.get("X-Real-IP")
+            client_ip = (
+                real_ip
+                if real_ip
+                else (request.client.host if request.client else "UNK")
+            )
 
-    rate_limiter.reset_rate_limits(client_ip)
-    return {"message": "Rate limits cleared"}
+        rate_limiter.reset_rate_limits(client_ip)
+        return {"message": "Rate limits cleared"}
+    except Exception as e:
+        raise e

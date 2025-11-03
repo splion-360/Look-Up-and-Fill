@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 from app.middleware.rate_limit import RateLimitMiddleware
@@ -22,7 +23,7 @@ app.add_middleware(
 )
 
 rate_limiter = RateLimitMiddleware(REQUEST_PER_MINUTE)
-app.middleware("http")(rate_limiter)
+app.add_middleware(BaseHTTPMiddleware, dispatch=rate_limiter)
 
 app.state.rate_limiter = rate_limiter
 

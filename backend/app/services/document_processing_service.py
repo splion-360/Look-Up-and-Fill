@@ -6,12 +6,13 @@ import httpx
 import pandas as pd
 from fastapi import HTTPException, UploadFile
 
+from app.services.cache_service import company_cache
 from app.utils import (
     CONCURRENCY_LIMIT,
     MAX_RETRIES,
     get_header,
-    hamming_distance,
     is_valid,
+    levenshtein_distance,
     retry_handler,
     setup_logger,
 )
@@ -19,7 +20,7 @@ from app.utils import (
 
 logger = setup_logger(__name__)
 header = get_header()
-COLOR = "BLUE"
+COLOR = "CYAN"
 
 
 @retry_handler(MAX_RETRIES)
@@ -74,6 +75,12 @@ async def get_symbol_from_name(name: str) -> str | None:
             logger.warning(f"Invalid name provided: {name or "UNK"}")
             return
 
+        # Check cache first
+        cached_symbol = company_cache.get_symbol_from_name(name)
+        if cached_symbol:
+            logger.info(f"Cache hit: {name} -> {cached_symbol}", "WHITE")
+            return cached_symbol
+
         data = name.lower().strip()
         data = data.replace(".", " ")
         entities = data.split()
@@ -95,6 +102,7 @@ async def get_symbol_from_name(name: str) -> str | None:
                     f"Found {len(company_info)} results for query: {current_query}",
                     COLOR,
                 )
+                company_cache.set_name_to_symbols(name, company_info)
                 break
 
             await asyncio.sleep(0.1)
@@ -123,7 +131,7 @@ async def get_symbol_from_name(name: str) -> str | None:
             company_name = result.get("description", "")
 
             if symbol and company_name:
-                distance = hamming_distance(
+                distance = levenshtein_distance(
                     name.lower().strip(), company_name.lower().strip()
                 )
                 if distance < min_distance:
@@ -155,6 +163,11 @@ async def get_name_from_symbol(symbol: str) -> str | None:
         if not is_valid(symbol):
             return ""
 
+        cached_name = company_cache.get_name_from_symbol(symbol)
+        if cached_name:
+            logger.info(f"Cache hit: {symbol} -> {cached_name}", "WHITE")
+            return cached_name
+
         logger.info(f"Calling get_name_from_symbol with {symbol}", COLOR)
         if not isinstance(symbol, str) or not symbol.strip():
             logger.warning(f"Invalid symbol provided: {symbol}")
@@ -169,6 +182,7 @@ async def get_name_from_symbol(symbol: str) -> str | None:
 
         name = data.get("name", "")
         if name and name.strip():
+            company_cache.set_symbol_to_name(symbol_clean, name.strip())
             logger.info(
                 f"Found company name: {name} for symbol {symbol}", COLOR
             )
@@ -263,15 +277,28 @@ async def process_single(row: dict) -> dict:
     if not row.get("symbol") or not row.get("name"):
         enriched_row = row.copy()
         lookup_success = False
+        cache_hit = False
 
         try:
             tasks = []
 
             if not row.get("symbol") and row.get("name"):
-                tasks.append(("symbol", get_symbol_from_name(row["name"])))
+                cached_symbol = company_cache.get_symbol_from_name(row["name"])
+                if cached_symbol:
+                    cache_hit = True
+                    enriched_row["symbol"] = cached_symbol
+                    lookup_success = True
+                else:
+                    tasks.append(("symbol", get_symbol_from_name(row["name"])))
 
             if not row.get("name") and row.get("symbol"):
-                tasks.append(("name", get_name_from_symbol(row["symbol"])))
+                cached_name = company_cache.get_name_from_symbol(row["symbol"])
+                if cached_name:
+                    cache_hit = True
+                    enriched_row["name"] = cached_name
+                    lookup_success = True
+                else:
+                    tasks.append(("name", get_name_from_symbol(row["symbol"])))
 
             if tasks:
                 results = await asyncio.gather(
@@ -284,7 +311,6 @@ async def process_single(row: dict) -> dict:
                         enriched_row["lookupStatus"] = "failed"
                         enriched_row["failureReason"] = result.detail
                         logger.error(f"Lookup failed for {result}")
-
                         break
 
                     elif result is not None:
@@ -298,12 +324,13 @@ async def process_single(row: dict) -> dict:
                         )
                         break
 
-                if lookup_success and "lookupStatus" not in enriched_row:
-                    enriched_row["isEnriched"] = True
-                    enriched_row["lookupStatus"] = "success"
-                elif "lookupStatus" not in enriched_row:
-                    enriched_row["lookupStatus"] = "failed"
-                    enriched_row["failureReason"] = "No matching data found"
+            if lookup_success and "lookupStatus" not in enriched_row:
+                enriched_row["isEnriched"] = True
+                enriched_row["lookupStatus"] = "success"
+                enriched_row["cache_hit"] = cache_hit
+            elif "lookupStatus" not in enriched_row:
+                enriched_row["lookupStatus"] = "failed"
+                enriched_row["failureReason"] = "No matching data found"
 
         except Exception as e:
             enriched_row["lookupStatus"] = "failed"
@@ -326,18 +353,27 @@ async def lookup_missing_data(data: list[dict]) -> dict[str, Any]:
                 "Table is complete (or) Invalid fields. Not proceeding further!!",
                 "CYAN",
             )
-            return {}
+            return {"data": data, "enriched_count": 0, "cache_hits": 0}
 
         logger.info(f"Found {len(missing_rows)} rows with missing data", COLOR)
 
         semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
+        cache_hit_count = 0
 
         async def process(row):
+            nonlocal cache_hit_count
             async with semaphore:
-                return await process_single(row)
+                result = await process_single(row)
+                if result.get("cache_hit"):
+                    cache_hit_count += 1  # Monitoring the cache hits
+                return result
 
         enriched_data = await asyncio.gather(*[process(row) for row in data])
-        return {"data": enriched_data, "enriched_count": len(missing_rows)}
+        return {
+            "data": enriched_data,
+            "enriched_count": len(missing_rows),
+            "cache_hits": cache_hit_count,
+        }
 
     except Exception as e:
         raise HTTPException(

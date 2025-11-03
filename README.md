@@ -14,27 +14,37 @@ A prototype web application that parses portfolio files and fills in missing tic
 - **Node.js**: 18.18+ (required for Next.js 15)
 - **Python**: 3.12+
 - **npm**: Latest version
+- **Redis**: 5.0+ (for caching)
 
 ## Backend Setup
 
-1. Open a new terminal and navigate to the backend directory:
+1. **Redis Server (local)** (Caching Layer):
+   For this project, I have utilized `redis-server` to minimize calls to the financial service API. You can follow the steps for installation from [here](https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/) 
+   
+   ```bash
+   # Verify redis-server is running
+   redis-cli ping  # Should return "PONG"
+   ```
+
+2. Open a new terminal and navigate to the backend directory:
    ```bash
    cd backend
    ```
 
-2. Create and activate a virtual environment _(assuming Unix)_:
+3. Create and activate a virtual environment _(assuming Unix)_:
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate 
    ```
 
-3. Install dependencies:
+4. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-4. Rename `.env.local` as `.env` and store your secrets. Visit [Finnhub](https://finnhub.io/) to create your API key
 
-5. Start the FastAPI server:
+5. Rename `.env.local` as `.env` and store your secrets. Visit [Finnhub](https://finnhub.io/) to create your API key
+
+6. Start the FastAPI server:
    ```bash
    uvicorn app.main:app --reload --port 8000
    ```

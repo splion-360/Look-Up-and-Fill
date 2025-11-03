@@ -16,12 +16,15 @@ load_dotenv()
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "production")
 FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY")
-CONCURRENCY_LIMIT = 5
+CONCURRENCY_LIMIT = 5  # Number of thread-safe-non-blocking operations
 BUCKET_CLEANUP_FREQ = 3600  # s Every hour
-PORT = 8000
-MAX_RETRIES = 3
-MAX_WORKERS = 6
+PORT = 8000  # Backend port
+MAX_RETRIES = 3  # Number of times to hit the 3rd party API before yielding
 REQUEST_PER_MINUTE = 30
+CACHE_TTL = 300  # s 5 minutes
+MAX_CACHE_CAPACITY = 1000
+DIST_THRESH = 10  # Edit distance boundary for bk-tree to select candidates
+
 LOG_COLORS = {
     "RED": "\033[31m",
     "GREEN": "\033[32m",
@@ -163,19 +166,19 @@ def retry_handler(max_retries: int = MAX_RETRIES):
 
                 except HTTPException as e:
                     if e.status_code == 429:
-                        if attepmt < max_retries:
-                            wait_time = (2**attepmt) + 0.5
-                            logger.warning(
-                                f"Rate limit hit, retrying in {wait_time}s (attempt {attepmt + 1}/{max_retries + 1})"
-                            )
-                            await asyncio.sleep(wait_time)
-                            continue
-
-                        else:
+                        if attepmt > max_retries:
                             raise HTTPException(
                                 500,
                                 detail="Max retry limit reached. Unable to fetch data",
                             ) from e
+
+                        wait_time = (2**attepmt) + 0.5
+                        logger.warning(
+                            f"Rate limit hit, retrying in {wait_time}s (attempt {attepmt + 1}/{max_retries + 1})"
+                        )
+                        await asyncio.sleep(wait_time)
+                        continue
+
                 except Exception as e:
                     raise HTTPException(500, detail="Retry failed") from e
             return
@@ -195,7 +198,23 @@ def is_valid(text: str):
     return False
 
 
-def hamming_distance(s1: str, s2: str) -> int:
-    if len(s1) != len(s2):
-        return max(len(s1), len(s2))
-    return sum(c1 != c2 for c1, c2 in zip(s1, s2, strict=False))
+def levenshtein_distance(s1: str, s2: str) -> int:
+    """
+    Finds the minimum number of edits (replacements, insertions & deletions)
+    required to convert one string into another.
+    """
+    dp = [
+        [float("inf") for _ in range(len(s2) + 1)] for _ in range(len(s1) + 1)
+    ]
+    for i in range(len(s1) + 1):
+        dp[i][len(s2)] = len(s1) - i
+    for j in range(len(s2) + 1):
+        dp[len(s1)][j] = len(s2) - j
+
+    for i in range(len(s1) - 1, -1, -1):
+        for j in range(len(s2) - 1, -1, -1):
+            if s1[i] == s2[j]:
+                dp[i][j] = dp[i + 1][j + 1]
+            else:
+                dp[i][j] = 1 + min(dp[i][j + 1], dp[i + 1][j], dp[i + 1][j + 1])
+    return dp[0][0]
