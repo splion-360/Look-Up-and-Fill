@@ -1,0 +1,51 @@
+name,symbol,typo_type,edit_distance
+ank of the james financial,,deletion,1
+wst holdings corp,,deletion,1
+robert alf inc,,deletion,1
+xce energy inc,,deletion,1
+bery corp,,deletion,1
+bankk of the james financial,,insertion,1
+wesst holdings corp,,insertion,1
+robert halff inc,,insertion,1
+xcel energyy inc,,insertion,1
+berryy corp,,insertion,1
+bonk of the james financial,,substitution,1
+wost holdings corp,,substitution,1
+robert holf inc,,substitution,1
+xcel energe inc,,substitution,1
+barry corp,,substitution,1
+abnk of the james financial,,transposition,1
+ewst holdings corp,,transposition,1
+robert hlaf inc,,transposition,1
+xccel energy inc,,transposition,1
+beryr corp,,transposition,1
+avech biotechnology ltd,,deletion,1
+avechoo biotechnology ltd,,insertion,1
+avecho biotechnolgy ltd,,substitution,1
+aevcho biotechnology ltd,,transposition,1
+masterwork 127 llc ltd cl a,,deletion,1
+masterworkss 127 llc ltd cl a,,insertion,1
+masterworks 127 llc ltd cl o,,substitution,1
+amsterworks 127 llc ltd cl a,,transposition,1
+allegr microsystems inc,,deletion,1
+allegro microsystemss inc,,insertion,1
+allegro microsystems onc,,substitution,1
+alelgro microsystems inc,,transposition,1
+bak of te james financial,,multiple,2
+wst holdin corp,,multiple,2
+robet haf inc,,multiple,2
+xl enrgy inc,,multiple,2
+bery cop,,multiple,2
+avch biotechnology ltd,,multiple,2
+masterwrks 127 llc ltd cl a,,multiple,2
+allegro microsystes inc,,multiple,2
+bank f the james financial,,multiple,3
+west holding corp,,multiple,3
+robt haf inc,,multiple,3
+xcl engy inc,,multiple,3
+bery co,,multiple,3
+bk of t james financial,,multiple,4
+ws holdi corp,,multiple,5
+robt ha inc,,multiple,4
+xl engy inc,,multiple,4
+ber co,,multiple,4

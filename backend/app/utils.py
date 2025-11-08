@@ -423,6 +423,7 @@ class TypoChecker:
             logger.info("Query found. Not proceeding with the check", "BLUE")
             return []
 
+        logger.info(f"Typo in {query}", "BRIGHT_YELLOW")
         if self.bk_tree and len(self.map) > 0:
             candidates = list(
                 self.bk_tree.find(modified_query, n=self.dist_thresh)
@@ -436,7 +437,10 @@ class TypoChecker:
                 suggestions.append((original_name, distance))
 
             suggestions.sort(key=lambda x: x[1])
-            return suggestions[:max_suggestions]
+
+            sliced_suggestions = suggestions[:max_suggestions]
+            logger.info(f"Suggestions: {sliced_suggestions}", "BRIGHT_YELLOW")
+            return sliced_suggestions
 
         return []
 
