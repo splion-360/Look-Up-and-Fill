@@ -76,13 +76,21 @@ async def get_symbol_from_name(name: str) -> str | None:
             logger.warning(f"Invalid name provided: {name or "UNK"}")
             return
 
-        # Check cache first
-        cached_symbol = company_cache.get_symbol_from_name(name)
+        # Check for typos first
+        corrected_name = name
+        suggestions = typo_checker.requires_check(name)
+        if suggestions:
+            corrected_name = suggestions[0][0]
+            logger.info(f"Typo detected: {name} -> {corrected_name}", "YELLOW")
+
+        cached_symbol = company_cache.get_symbol_from_name(corrected_name)
         if cached_symbol:
-            logger.info(f"Cache hit: {name} -> {cached_symbol}", "WHITE")
+            logger.info(
+                f"Cache hit: {corrected_name} -> {cached_symbol}", "WHITE"
+            )
             return cached_symbol
 
-        data = name.lower().strip()
+        data = corrected_name.lower().strip()
         data = data.replace(".", " ")
         entities = data.split()
 
@@ -103,45 +111,29 @@ async def get_symbol_from_name(name: str) -> str | None:
                     f"Found {len(company_info)} results for query: {current_query}",
                     COLOR,
                 )
-                company_cache.set_name_to_symbols(name, company_info)
+                company_cache.set_name_to_symbols(corrected_name, company_info)
                 break
 
             await asyncio.sleep(0.1)
         else:
             logger.info(
-                f"No results found for any variation of: {name}. Trying spell check...",
+                f"No results found for any variation of: {corrected_name}",
                 "CYAN",
             )
-            suggestions = typo_checker.requires_check(name)
-            for suggestion, distance in suggestions[:3]:
-                logger.info(
-                    f"Trying suggestion: {suggestion} (distance: {distance})",
-                    "YELLOW",
-                )
-                company_info = await search_with_query(suggestion)
-                if company_info:
-                    logger.info(
-                        f"Found results with: {suggestion}",
-                        "GREEN",
-                    )
-                    company_cache.set_name_to_symbols(name, company_info)
-                    break
-                await asyncio.sleep(0.1)
-            else:
-                logger.info(
-                    f"No results found even with spell checking for: {name}",
-                    "CYAN",
-                )
-                return
+            return
 
         for result in company_info:
             symbol = result.get("symbol", "")
             company_name: str = result.get("description", "")
 
             if symbol and company_name:
-                if name.lower().strip() == company_name.lower().strip():
+                if (
+                    corrected_name.lower().strip()
+                    == company_name.lower().strip()
+                ):
                     logger.info(
-                        f"Found exact match: {symbol} for {name}", COLOR
+                        f"Found exact match: {symbol} for {corrected_name}",
+                        COLOR,
                     )
                     return symbol
 
@@ -154,7 +146,7 @@ async def get_symbol_from_name(name: str) -> str | None:
 
             if symbol and company_name:
                 distance = levenshtein_distance(
-                    name.lower().strip(), company_name.lower().strip()
+                    corrected_name.lower().strip(), company_name.lower().strip()
                 )
                 if distance < min_distance:
                     min_distance = distance
@@ -162,7 +154,7 @@ async def get_symbol_from_name(name: str) -> str | None:
 
         if best_match:
             logger.info(
-                f"Found best match - {best_match} for {name} with distance {min_distance}",
+                f"Found best match - {best_match} for {corrected_name} with distance {min_distance}",
                 "GREEN",
             )
             return best_match
