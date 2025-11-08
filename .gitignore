@@ -210,3 +210,6 @@ __marimo__/
 # Misc
 assets/.~lock.sample.csv#
 **/*.ipynb
+**/data/
+**/*.pdf
+**/*.mp4

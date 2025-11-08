@@ -15,6 +15,7 @@ from app.utils import (
     levenshtein_distance,
     retry_handler,
     setup_logger,
+    typo_checker,
 )
 
 
@@ -108,13 +109,34 @@ async def get_symbol_from_name(name: str) -> str | None:
             await asyncio.sleep(0.1)
         else:
             logger.info(
-                f"No results found for any variation of: {name}", "CYAN"
+                f"No results found for any variation of: {name}. Trying spell check...",
+                "CYAN",
             )
-            return
+            suggestions = typo_checker.requires_check(name)
+            for suggestion, distance in suggestions[:3]:
+                logger.info(
+                    f"Trying suggestion: {suggestion} (distance: {distance})",
+                    "YELLOW",
+                )
+                company_info = await search_with_query(suggestion)
+                if company_info:
+                    logger.info(
+                        f"Found results with: {suggestion}",
+                        "GREEN",
+                    )
+                    company_cache.set_name_to_symbols(name, company_info)
+                    break
+                await asyncio.sleep(0.1)
+            else:
+                logger.info(
+                    f"No results found even with spell checking for: {name}",
+                    "CYAN",
+                )
+                return
 
         for result in company_info:
             symbol = result.get("symbol", "")
-            company_name = result.get("description", "")
+            company_name: str = result.get("description", "")
 
             if symbol and company_name:
                 if name.lower().strip() == company_name.lower().strip():
