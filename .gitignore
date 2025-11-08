@@ -214,3 +214,4 @@ __marimo__/
 **/data/
 **/*.pdf
 **/*.mp4
+**/generate_typos.py

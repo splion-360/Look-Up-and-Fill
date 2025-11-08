@@ -1,51 +1,51 @@
-name,symbol,typo_type,edit_distance
-ank of the james financial,,deletion,1
-wst holdings corp,,deletion,1
-robert alf inc,,deletion,1
-xce energy inc,,deletion,1
-bery corp,,deletion,1
-bankk of the james financial,,insertion,1
-wesst holdings corp,,insertion,1
-robert halff inc,,insertion,1
-xcel energyy inc,,insertion,1
-berryy corp,,insertion,1
-bonk of the james financial,,substitution,1
-wost holdings corp,,substitution,1
-robert holf inc,,substitution,1
-xcel energe inc,,substitution,1
-barry corp,,substitution,1
-abnk of the james financial,,transposition,1
-ewst holdings corp,,transposition,1
-robert hlaf inc,,transposition,1
-xccel energy inc,,transposition,1
-beryr corp,,transposition,1
-avech biotechnology ltd,,deletion,1
-avechoo biotechnology ltd,,insertion,1
-avecho biotechnolgy ltd,,substitution,1
-aevcho biotechnology ltd,,transposition,1
-masterwork 127 llc ltd cl a,,deletion,1
-masterworkss 127 llc ltd cl a,,insertion,1
-masterworks 127 llc ltd cl o,,substitution,1
-amsterworks 127 llc ltd cl a,,transposition,1
-allegr microsystems inc,,deletion,1
-allegro microsystemss inc,,insertion,1
-allegro microsystems onc,,substitution,1
-alelgro microsystems inc,,transposition,1
-bak of te james financial,,multiple,2
-wst holdin corp,,multiple,2
-robet haf inc,,multiple,2
-xl enrgy inc,,multiple,2
-bery cop,,multiple,2
-avch biotechnology ltd,,multiple,2
-masterwrks 127 llc ltd cl a,,multiple,2
-allegro microsystes inc,,multiple,2
-bank f the james financial,,multiple,3
-west holding corp,,multiple,3
-robt haf inc,,multiple,3
-xcl engy inc,,multiple,3
-bery co,,multiple,3
-bk of t james financial,,multiple,4
-ws holdi corp,,multiple,5
-robt ha inc,,multiple,4
-xl engy inc,,multiple,4
-ber co,,multiple,4
+name,symbol,Price,# of Shares,Market Value
+ank of the james financial,,189.89,10,1898.9
+wst holdings corp,,326.12,5,1630.6
+robert alf inc,,362.55,2,725.1
+xce energy inc,,145.32,8,1162.56
+bery corp,,238.45,15,3576.75
+bankk of the james financial,,421.67,3,1265.01
+wesst holdings corp,,2856.34,1,2856.34
+robert halff inc,,298.76,12,3585.12
+xcel energyy inc,,165.43,7,1157.01
+berryy corp,,245.89,9,2213.01
+bonk of the james financial,,148.32,6,889.92
+wost holdings corp,,152.67,4,610.68
+robert holf inc,,512.34,2,1024.68
+xcel energe inc,,327.89,5,1639.45
+barry corp,,398.76,3,1196.28
+abnk of the james financial,,32.45,25,811.25
+ewst holdings corp,,59.87,20,1197.4
+robert hlaf inc,,168.34,8,1346.72
+xccel energy inc,,95.23,15,1428.45
+beryr corp,,456.78,4,1827.12
+avech biotechnology ltd,,456.78,4,1827.12
+avechoo biotechnology ltd,,189.89,10,1898.9
+avecho biotechnolgy ltd,,326.12,5,1630.6
+aevcho biotechnology ltd,,362.55,2,725.1
+masterwork 127 llc ltd cl a,,145.32,8,1162.56
+masterworkss 127 llc ltd cl a,,238.45,15,3576.75
+masterworks 127 llc ltd cl o,,421.67,3,1265.01
+amsterworks 127 llc ltd cl a,,2856.34,1,2856.34
+allegr microsystems inc,,298.76,12,3585.12
+allegro microsystemss inc,,165.43,7,1157.01
+allegro microsystems onc,,245.89,9,2213.01
+alelgro microsystems inc,,148.32,6,889.92
+bak of te james financial,,152.67,4,610.68
+wst holdin corp,,512.34,2,1024.68
+robet haf inc,,327.89,5,1639.45
+xl enrgy inc,,398.76,3,1196.28
+bery cop,,32.45,25,811.25
+avch biotechnology ltd,,59.87,20,1197.4
+masterwrks 127 llc ltd cl a,,168.34,8,1346.72
+allegro microsystes inc,,95.23,15,1428.45
+bank f the james financial,,456.78,4,1827.12
+west holding corp,,456.78,4,1827.12
+robt haf inc,,189.89,10,1898.9
+xcl engy inc,,326.12,5,1630.6
+bery co,,362.55,2,725.1
+bk of t james financial,,145.32,8,1162.56
+ws holdi corp,,238.45,15,3576.75
+robt ha inc,,421.67,3,1265.01
+xl engy inc,,2856.34,1,2856.34
+ber co,,298.76,12,3585.12
